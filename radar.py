@@ -1,384 +1,539 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Радар промокодов</title>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<style>
-:root{--bg:#0a0f1e;--sf:#131b2e;--sf2:#1a2440;--ink:#e8f0ff;--mut:#7a8ba8;--line:rgba(120,150,200,.15);--teal:#2ee6a8;--cyan:#39c6ff;--blue:#4d9fff;--gold:#ffb627;--mag:#ff4d9d;--red:#ff5c6c;--grn:#3dffa2;--acc:var(--teal);--acc2:var(--cyan)}
-[data-theme=light]{--bg:#eef2f9;--sf:#fff;--sf2:#eef2fa;--ink:#101b30;--mut:#5a6b8c;--line:rgba(30,60,120,.14);--teal:#0eb984;--cyan:#0e9fd8;--blue:#2f7fe0;--gold:#d98f00;--mag:#e0307f;--red:#e04352;--grn:#0fbf7a}
-body[data-tab=hotel]{--acc:var(--teal);--acc2:var(--cyan)}
-body[data-tab=avia]{--acc:var(--blue);--acc2:var(--cyan)}
-body[data-tab=market]{--acc:var(--mag);--acc2:var(--gold)}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,sans-serif;padding-bottom:80px}
-header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:12px 14px;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
-.logo{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));animation:spin 4s linear infinite;position:relative}
-.logo::after{content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border-radius:50%;background:var(--bg)}
-@keyframes spin{to{transform:rotate(360deg)}}
-.htxt b{font:900 15px Unbounded;display:block}
-.htxt small{color:var(--mut);font-size:11px}
-.dot{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:4px}
-.ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font-size:16px;display:grid;place-items:center;cursor:pointer}
-.tabs{position:sticky;top:64px;z-index:39;display:flex;gap:6px;padding:8px 12px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);overflow-x:auto;border-bottom:1px solid var(--line)}
-.tab{flex:none;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:8px 14px;font:700 13px Manrope;cursor:pointer}
-.tab.on{color:var(--bg);background:linear-gradient(120deg,var(--acc),var(--acc2));border-color:transparent}
-.toolbar{padding:10px 12px;display:grid;gap:8px}
-.searchrow{display:flex;gap:8px}
-.search{flex:1;display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:0 12px}
-.search input{flex:1;background:none;border:0;outline:0;color:var(--ink);font:600 14px Manrope;padding:10px 0}
-select{background:var(--sf);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 10px;font:700 12px Manrope}
-.chips{display:flex;gap:6px;overflow-x:auto}
-.chip{flex:none;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:6px 11px;font:700 12px Manrope;cursor:pointer}
-.chip.on{color:var(--acc);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 15%,var(--sf))}
-.stats{padding:4px 16px 8px;color:var(--mut);font:600 12px Manrope;display:flex;gap:10px}
-.stats b{color:var(--acc)}
-main{padding:0 12px;display:grid;gap:16px}
-.brandhead{position:sticky;top:170px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 20%,var(--bg)),var(--bg));border-left:4px solid var(--acc);border-radius:0 12px 12px 0;margin:8px 0}
-.brandhead .emoji{font-size:20px}
-.brandhead b{font:800 14px Unbounded;flex:1}
-.brandhead small{color:var(--mut);font:600 11px Manrope}
-.brandhead a{color:var(--acc);font:700 11px Manrope;text-decoration:none;padding:4px 8px;border:1px solid var(--line);border-radius:8px}
-.cards{display:grid;gap:10px}
-.card{position:relative;background:linear-gradient(160deg,var(--sf),var(--sf2));border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px 16px;animation:rise .4s both}
-.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--acc),var(--acc2));border-radius:16px 0 0 16px}
-.card.hot{border-color:color-mix(in srgb,var(--gold) 50%,transparent);box-shadow:0 4px 20px color-mix(in srgb,var(--gold) 20%,transparent)}
-@keyframes rise{from{opacity:0;transform:translateY(10px)}}
-.ctop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.mark{font:800 10px Unbounded;color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,transparent);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);padding:3px 8px;border-radius:999px}
-.mark.best{color:var(--bg);background:linear-gradient(120deg,var(--gold),#ffd76a);border:0}
-.new{font:800 9px Unbounded;color:var(--grn);border:1px solid color-mix(in srgb,var(--grn) 50%,transparent);padding:2px 7px;border-radius:999px}
-.fav{margin-left:auto;background:none;border:0;font-size:18px;color:var(--mut);cursor:pointer}
-.fav.on{color:var(--gold)}
-.codechip{display:inline-flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--acc) 12%,var(--sf));border:1px dashed color-mix(in srgb,var(--acc) 55%,transparent);border-radius:10px;padding:8px 12px;cursor:pointer}
-.codechip .mono{font:700 16px JetBrains Mono;color:var(--acc)}
-.codechip span:last-child{color:var(--mut);font-size:12px}
-.deal{font:800 18px/1.25 Manrope;margin:8px 0 2px;color:var(--ink)}
-.save{color:var(--grn);font:700 12px Manrope}
-.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.pill{font:700 11px Manrope;color:var(--mut);background:var(--sf2);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
-.pill.warn{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
-.pill.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}
-.empty{text-align:center;padding:40px 20px;color:var(--mut)}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;padding:8px 8px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px);border-top:1px solid var(--line)}
-.nbtn{flex:1;display:grid;justify-items:center;gap:2px;background:none;border:0;color:var(--mut);font:700 10px Manrope;cursor:pointer;padding:6px 0;border-radius:10px}
-.nbtn b{font-size:18px;font-weight:400}
-.nbtn.on{color:var(--acc)}
-.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.2s}
-.scrim.show{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:85vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;border-top:1px solid var(--line);transform:translateY(100%);transition:transform .25s;padding:8px 16px 20px}
-.sheet.show{transform:none}
-.grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 12px}
-.sheet h2{font:900 16px Unbounded;margin:4px 0 12px}
-.sheet h3{font:800 13px Unbounded;margin:14px 0 8px;color:var(--acc)}
-.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.row .lbl{flex:1;font:700 14px Manrope}
-.row .lbl small{display:block;color:var(--mut);font:600 11px Manrope}
-.sw{width:44px;height:24px;flex:none;border-radius:999px;background:var(--sf2);border:1px solid var(--line);position:relative;cursor:pointer}
-.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.2s}
-.sw.on{background:color-mix(in srgb,var(--acc) 30%,var(--sf2));border-color:var(--acc)}
-.sw.on::after{left:22px;background:var(--acc)}
-.btn{display:block;width:100%;border:0;border-radius:12px;padding:12px;font:800 14px Manrope;cursor:pointer;background:linear-gradient(120deg,var(--acc),var(--acc2));color:var(--bg);margin-top:10px}
-.btn.ghost{background:var(--sf);color:var(--ink);border:1px solid var(--line)}
-.toast{position:fixed;left:12px;right:12px;bottom:70px;z-index:80;background:var(--sf2);border:1px solid var(--acc);border-radius:12px;padding:10px 12px;font:700 13px Manrope;transform:translateY(20px);opacity:0;transition:.2s;pointer-events:none}
-.toast.show{transform:none;opacity:1}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tile{background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font:700 13px Manrope}
-.tile small{display:block;color:var(--mut);font:600 11px Manrope;margin-top:2px}
-</style>
-</head>
-<body data-tab="hotel">
-<header>
-  <div class="logo"></div>
-  <div class="htxt"><b>РАДАР ПРОМОКОДОВ</b><small><span class="dot"></span><span id="liveTxt">загрузка…</span></small></div>
-  <button class="ibtn" id="themeBtn">🌙</button>
-  <button class="ibtn" id="refreshBtn">📡</button>
-</header>
-<div class="tabs">
-  <button class="tab on" data-tab="hotel">🏨 Отели</button>
-  <button class="tab" data-tab="avia">✈️ Авиабилеты</button>
-  <button class="tab" data-tab="market">🛍 Маркетплейсы</button>
-  <button class="tab" data-tab="old">🕘 Старые</button>
-</div>
-<div class="toolbar">
-  <div class="searchrow">
-    <div class="search">🔎<input id="q" placeholder="Код, бренд…"></div>
-    <select id="sort">
-      <option value="value">💰 По выгоде</option>
-      <option value="pct">📊 По % скидки</option>
-      <option value="amt">💵 По сумме</option>
-      <option value="exp">⏳ По сроку</option>
-      <option value="az">🔤 А–Я</option>
-    </select>
-  </div>
-  <div class="chips">
-    <button class="chip" data-f="hot">🔥 Выгодные</button>
-    <button class="chip" data-f="app">📱 В приложении</button>
-    <button class="chip" data-f="first">🆕 Первое</button>
-    <button class="chip" data-f="fav">⭐ Избранное</button>
-  </div>
-</div>
-<div class="stats" id="stats"></div>
-<main id="list"></main>
-<nav>
-  <button class="nbtn" id="navSub"><b>🔔</b>Подписки</button>
-  <button class="nbtn" id="navFav"><b>⭐</b>Избранное</button>
-  <button class="nbtn" id="navAdmin" style="display:none"><b>⚙️</b>Админ</button>
-</nav>
-<div class="scrim" id="scrim"></div>
-<div class="sheet" id="sheet"><div class="grip"></div><div id="sheetBody"></div></div>
-<div class="toast" id="toast"></div>
-<script>
-const REPO="UJTORM/promo-radar",RAW=`https://raw.githubusercontent.com/${REPO}/main/state.json`;
-const tg=window.Telegram?.WebApp;
-const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const fmt=n=>Number(n).toLocaleString("ru-RU");
-const CATS={hotel:"🏨 Отели",avia:"✈️ Авиабилеты",market:"🛍 Маркетплейсы"};
-const CATALOG={
- ya:{cat:"hotel",name:"ЯНДЕКС ПУТЕШЕСТВИЯ",emoji:"🟡",site:"https://travel.yandex.ru"},
- os:{cat:"hotel",name:"ОСТРОВОК",emoji:"🔵",site:"https://ostrovok.ru"},
- ozt:{cat:"hotel",name:"OZON TRAVEL",emoji:"🟣",site:"https://www.ozon.ru/travel/"},
- ot:{cat:"hotel",name:"ОТЕЛЛО",emoji:"🟠",site:"https://otello.ru"},
- tp:{cat:"hotel",name:"Т-ПУТЕШЕСТВИЯ",emoji:"🟢",site:"https://www.tbank.ru/travel/"},
- pb:{cat:"avia",name:"ПОБЕДА",emoji:"🟢",site:"https://www.pobeda.aero"},
- af:{cat:"avia",name:"АЭРОФЛОТ",emoji:"🔵",site:"https://www.aeroflot.ru"},
- s7:{cat:"avia",name:"S7",emoji:"🟢",site:"https://www.s7.ru"},
- oz:{cat:"market",name:"OZON",emoji:"🟣",site:"https://www.ozon.ru"},
- wb:{cat:"market",name:"WILDBERRIES",emoji:"🟣",site:"https://www.wildberries.ru"},
- ym:{cat:"market",name:"ЯНДЕКС МАРКЕТ",emoji:"🟡",site:"https://market.yandex.ru"}
-};
-let DATA=null,DEMO=true,lastFetch=0,pending=[],sheetOpen=null;
-const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-let favs=new Set(LS.get("pr_favs",[]));
-let ui={tab:"hotel",q:"",sort:"value",f:{hot:false,app:false,first:false,fav:false}};
-const userId=tg?.initDataUnsafe?.user?.id||0;
-const isAdmin=()=>!userId||DATA?.admin===userId;
+# -*- coding: utf-8 -*-
+"""Промокод-радар v14 — финал."""
+import html, json, os, re, subprocess, threading, time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import requests
+from bs4 import BeautifulSoup
 
-function parseOffer(c){
- if(!c)return{pct:null,amt:null,mn:null,cap:null,exp:null,tags:[]};
- const g=re=>{const m=c.match(re);return m?m[1].replace(/\s/g,""):null};
- let pct=g(/скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%/i),
-     amt=g(/скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
-     mn=g(/от\s*(\d[\d\s]{3,})\s*(?:₽|руб)/i)||g(/от\s*(\d{4,})\b/i),
-     cap=g(/не более\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
-     exp=(c.match(/до\s*(\d{2})\.(\d{2})\.(\d{2,4})/i)||[])[1]||null;
- if(exp){
-   const p=exp.split(".");
-   let y=+p[2];
-   if(isNaN(y)||y<100)y+=2000;
-   exp=`${p[0]}.${p[1]}.${y}`;
- }
- const tags=[];
- if(/приложени/i.test(c))tags.push("📱 в приложении");
- if(/перв\w+\s*(заказ|бронирован)/i.test(c))tags.push("🆕 первое");
- if(/2027/i.test(c))tags.push("📅 2027");
- if(/в РФ|по России/i.test(c))tags.push("🇷🇺 РФ");
- return{pct:pct?+pct:null,amt:amt?+amt:null,mn:mn?+mn:null,cap:cap?+cap:null,exp,tags};
+TG_TOKEN = os.environ["TG_TOKEN"]
+ENV_ADMIN = int(os.environ.get("TG_ADMIN") or os.environ.get("TG_CHAT") or 0)
+API = "https://api.telegram.org/bot" + TG_TOKEN
+DIR = os.path.dirname(os.path.abspath(__file__))
+STATE_FILE = os.path.join(DIR, "state.json")
+MINIAPP_URL = "https://ujtorm.github.io/promo-radar/"
+
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+CATS = {"hotel": "🏨 ОТЕЛИ", "avia": "✈️ АВИАБИЛЕТЫ", "market": "🛍 МАРКЕТПЛЕЙСЫ"}
+
+# Только рабочие источники. Пустые разделы заполняются демо-данными.
+BRANDS = {
+ "ya": ("hotel", "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel")]),
+ "os": ("hotel", "🔵 ОСТРОВОК", [("Блог", "https://blog.ostrovok.ru/promokody-ostrovka/"), ("Лисёнок", "https://lisenok-travel.ru/tpost/ostrovok-promokody-na-skidku")]),
+ "ozt": ("hotel", "🟣 OZON TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel")]),
+ "ot": ("hotel", "🟠 ОТЕЛЛО", [("Lovikod", "https://lovikod.ru/travel/promokody-otello")]),
+ "tp": ("hotel", "🟢 Т-ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-t-puteshestviya")]),
+ "pb": ("avia", "🟢 ПОБЕДА", []),
+ "af": ("avia", "🔵 АЭРОФЛОТ", []),
+ "s7": ("avia", "🟢 S7", []),
+ "oz": ("market", "🟣 OZON", []),
+ "wb": ("market", "🟣 WILDBERRIES", []),
+ "ym": ("market", "🟡 ЯНДЕКС МАРКЕТ", []),
 }
-const budget=cat=>DATA?.settings?.budgets?.[cat]||{hotel:60000,avia:15000,market:5000}[cat];
-function value(o,b){if(o.mn&&b<o.mn)return 0;if(o.amt)return o.amt;if(o.pct){let v=b*o.pct/100;if(o.cap)v=Math.min(v,o.cap);return Math.round(v)}return 0}
-const sig=o=>[o.pct,o.amt,o.mn,o.cap,o.exp,o.tags.join()].join("|");
-function daysLeft(exp){
-  if(!exp)return null;
-  const p=exp.split(".");
-  if(p.length<3)return null;
-  const d=new Date(+p[2],+p[1]-1,+p[0]);
-  if(isNaN(d.getTime()))return null;
-  return Math.ceil((d-Date.now())/864e5);
-}
-function seed(){
-  const now=Date.now()/1000,S=(b,code,ctx)=>[b+":"+code,{ctx,src:"demo",brand:b}];
-  const seen=Object.fromEntries([
-    S("ya","NEVOLK","Скидка 5 000 ₽ от 60 000 ₽, проживание в 2027. Действует до 31.12.2026"),
-    S("ya","GS-ALL-2027","Скидка 1 000 ₽ от 10 000 ₽ для всех, проживание в 2027. До 31.12.2026"),
-    S("os","ЛОВИ","Скидка 11% на бронирование от 20 000 ₽ на любые даты. До 15.11.2026"),
-    S("os","КАКАО","Скидка 6% на любую сумму и любые даты. До 10.12.2026"),
-    S("pb","POBEDA500","Скидка 500 ₽ от 5 000 ₽. Действует до 18.12.2026"),
-    S("af","AFL1500","Скидка 1 500 ₽ от 15 000 ₽. До 20.12.2026"),
-    S("s7","S7WINTER","Скидка 10% на билеты, вылеты до 31.03.2027. До 31.12.2026"),
-    S("oz","OZON500","Скидка 500 ₽ от 3 000 ₽. До 16.11.2026"),
-    S("wb","WB300","Скидка 300 ₽ от 2 000 ₽. До 30.11.2026"),
-    S("ym","MARKET10","Скидка 10% (не более 1 000 ₽), первый заказ. До 31.12.2026")
-  ]);
-  return{seen,old:{},http:{},notified:{},settings:{interval:5,quiet:false,broadcast:true,budgets:{hotel:60000,avia:15000,market:5000}},subs:{},admin:userId||1};
-}
-async function loadData(){
-  try{
-    const r=await fetch(RAW+"?t="+Date.now(),{cache:"no-store"});
-    if(!r.ok)throw 0;
-    const j=await r.json();
-    DATA=Object.assign(seed(),j);
-    DATA.settings=Object.assign({interval:5,quiet:false,broadcast:true,budgets:{hotel:60000,avia:15000,market:5000}},j.settings||{});
-    DATA.settings.budgets=Object.assign({hotel:60000,avia:15000,market:5000},(j.settings||{}).budgets||{});
-    DEMO=false;
-  }catch(e){DATA=seed();DEMO=true}
-  lastFetch=Date.now();
-  renderAll();
-}
-function codesFor(tab){
-  const src=tab==="old"?DATA.old:DATA.seen,out=[];
-  for(const[k,v]of Object.entries(src||{})){
-    const i=k.indexOf(":");if(i<0)continue;
-    const brand=k.slice(0,i),code=k.slice(i+1);
-    const cat=CATALOG[brand]?.cat;if(!cat)continue;
-    if(tab!=="old"&&cat!==tab)continue;
-    const o=parseOffer(v.ctx);
-    out.push({key:k,brand,code,ctx:v.ctx||"",src:v.src||"",o,value:value(o,budget(cat)),gone:v.gone,ts:(DATA.notified||{})[k]||0});
-  }
-  return out;
-}
-function filtered(){
-  let list=codesFor(ui.tab);
-  const q=ui.q.toLowerCase();
-  if(q)list=list.filter(x=>x.code.toLowerCase().includes(q)||CATALOG[x.brand]?.name.toLowerCase().includes(q)||x.ctx.toLowerCase().includes(q));
-  if(ui.f.hot)list=list.filter(x=>x.value>0);
-  if(ui.f.app)list=list.filter(x=>x.o.tags.some(t=>t.includes("приложении")));
-  if(ui.f.first)list=list.filter(x=>x.o.tags.some(t=>t.includes("первое")));
-  if(ui.f.fav)list=list.filter(x=>favs.has(x.key));
-  const s=ui.sort;
-  list.sort((a,b)=>{
-    if(s==="exp")return(daysLeft(a.o.exp)??999)-(daysLeft(b.o.exp)??999);
-    if(s==="az")return a.code.localeCompare(b.code);
-    if(s==="pct")return(b.o.pct||0)-(a.o.pct||0);
-    if(s==="amt")return(b.o.amt||0)-(a.o.amt||0);
-    return b.value-a.value;
-  });
-  return list;
-}
-function dealLine(o){
-  if(o.amt)return`${fmt(o.amt)} ₽`+(o.mn?` от ${fmt(o.mn)} ₽`:"");
-  if(o.pct)return`${o.pct}%`+(o.mn?` от ${fmt(o.mn)} ₽`:"")+(o.cap?` (макс. ${fmt(o.cap)} ₽)`:"");
-  return null;
-}
-function renderAll(){renderStatus();renderList();renderNav()}
-function renderStatus(){
-  $("#liveTxt").textContent=DEMO?"ДЕМО":`LIVE · ${Math.max(0,Math.round((Date.now()-lastFetch)/6e4))} мин`;
-  $("#navAdmin").style.display=isAdmin()?"":"none";
-}
-function renderList(){
-  const list=filtered(),marks={};
-  [...list].sort((a,b)=>b.value-a.value).slice(0,3).forEach((x,i)=>{if(x.value>0)marks[x.key]=i===0?"best":"hot"});
-  const groups={};list.forEach(x=>(groups[x.brand]=groups[x.brand]||[]).push(x));
-  const order=Object.keys(groups).sort((a,b)=>Math.max(...groups[b].map(x=>x.value))-Math.max(...groups[a].map(x=>x.value)));
-  const best=list.length?Math.max(...list.map(x=>x.value)):0;
-  $("#stats").innerHTML=`<span><b>${list.length}</b> кодов</span><span><b>${order.length}</b> брендов</span>${best?`<span>лучшая <b>${fmt(best)} ₽</b></span>`:""}`;
-  if(!list.length){$("#list").innerHTML=`<div class="empty">📡 Ничего не нашлось.</div>`;return}
-  let html="";
-  for(const b of order){
-    const c=CATALOG[b];if(!c)continue;
-    html+=`<section><div class="brandhead"><span class="emoji">${c.emoji}</span><b>${esc(c.name)}</b><small>· ${groups[b].length}</small><a href="${c.site}" target="_blank">сайт ↗</a></div><div class="cards">`;
-    const seenSig={};
-    for(const x of groups[b]){
-      const s=sig(x.o);
-      if(seenSig[s]){seenSig[s].aliases.push(x);continue}
-      seenSig[s]=x;x.aliases=[];
-      const dl=daysLeft(x.o.exp),expCls=dl==null?"":dl<=2?"danger":dl<=7?"warn":"",isNew=Date.now()/1000-x.ts<86400;
-      const deal=dealLine(x.o);
-      html+=`<article class="card ${marks[x.key]?"hot":""}">
-        <div class="ctop">${marks[x.key]?`<span class="mark ${marks[x.key]==="best"?"best":""}">${marks[x.key]==="best"?"💰 САМЫЙ ВЫГОДНЫЙ":"🔥 ВЫГОДНЫЙ"}</span>`:""}${isNew&&ui.tab!=="old"?'<span class="new">NEW</span>':""}<button class="fav ${favs.has(x.key)?"on":""}" data-fav="${esc(x.key)}">${favs.has(x.key)?"★":"☆"}</button></div>
-        <button class="codechip" data-copy="${esc(x.code)}"><span class="mono">${esc(x.code)}</span><span>⧉</span></button>
-        ${deal?`<div class="deal">${esc(deal)}</div>`:'<div class="deal" style="color:var(--mut)">скидка по условиям акции</div>'}
-        ${x.value?`<div class="save">≈ выгода ${fmt(x.value)} ₽ при ${fmt(budget(c.cat))} ₽</div>`:""}
-        <div class="meta">${x.o.exp?`<span class="pill ${expCls}">⏳ до ${x.o.exp}${dl!=null?` · ${dl}д`:""}</span>`:'<span class="pill">срок не указан</span>'}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
-      </article>`;
+
+CODE_RE = re.compile(r"\b[A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,}\b")
+STOP_WORDS = {"ВАЖНО","СКИДКА","ПРОМОКОД","ОСТРОВОК","ЯНДЕКС","GURU","HTML","HTTPS","HTTP","МЕНЮ","АКЦИЯ","КУПОН","ОТЕЛЬ","ПРОВЕРЕН","ПЕРВЫЙ","OZON","TRAVEL"}
+BAD = re.compile(r"(завершена|завершён|завершен\b|истёк|истек|expired)", re.I)
+CUT = re.compile(r"(истекшие купоны|завершенные промокоды)", re.I)
+
+state = None
+offset = 0
+
+def clean(s): return re.sub(r"\s+", " ", s).strip()
+def num(s): return int(re.sub(r"\s", "", s))
+def fmt(n): return f"{n:,}".replace(",", " ")
+def msk(t=None): return time.gmtime((t or time.time()) + 3 * 3600)
+def msk_str(t, f="%d.%m %H:%M"): return time.strftime(f, msk(t))
+
+def load_state():
+    global state, offset
+    st = {"subs": {}, "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
+          "last_poll": 0, "sources_off": [], "sources_custom": [],
+          "admin": 0, "cool": {}, "await_ann": False, "await_src": False,
+          "demo_loaded": False,
+          "settings": {"interval": 5, "quiet": False, "broadcast": True,
+                       "budgets": {"hotel": 60000, "avia": 15000, "market": 5000}}}
+    if os.path.exists(STATE_FILE):
+        try:
+            with open(STATE_FILE, encoding="utf-8") as f: st.update(json.load(f))
+        except Exception: pass
+    if isinstance(st["subs"], list):
+        st["subs"] = {c: {"hotel": True, "avia": True, "market": False} for c in st["subs"]}
+    offset = st.get("offset", 0)
+    state = st
+    if not st.get("demo_loaded"):
+        load_demo()
+        st["demo_loaded"] = True
+    return st
+
+def load_demo():
+    """Заполняет пустые разделы демо-данными."""
+    demo = {
+        "pb:POBEDA500": {"ctx": "Скидка 500 ₽ от 5 000 ₽. Действует до 18.12.2026", "brand": "pb", "src": "demo"},
+        "af:AFL1500": {"ctx": "Скидка 1 500 ₽ от 15 000 ₽. Действует до 20.12.2026", "brand": "af", "src": "demo"},
+        "s7:S7WINTER": {"ctx": "Скидка 10% на билеты. Действует до 31.12.2026", "brand": "s7", "src": "demo"},
+        "oz:OZON500": {"ctx": "Скидка 500 ₽ от 3 000 ₽. Действует до 16.11.2026", "brand": "oz", "src": "demo"},
+        "wb:WB300": {"ctx": "Скидка 300 ₽ от 2 000 ₽. Действует до 30.11.2026", "brand": "wb", "src": "demo"},
+        "ym:MARKET10": {"ctx": "Скидка 10% (макс. 1 000 ₽). Действует до 31.12.2026", "brand": "ym", "src": "demo"},
     }
-    html+="</div></section>";
-  }
-  $("#list").innerHTML=html;
-}
-function renderNav(){$("#navFav").classList.toggle("on",ui.f.fav)}
-async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){}ta.remove();return ok}}
-let toastTimer;function toast(msg){$("#toast").textContent=msg;$("#toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("#toast").classList.remove("show"),2500)}
-async function doCopy(code){const ok=await copyText(code);toast(ok?`📋 ${code}`:"Ошибка")}
-function toggleFav(key){if(favs.has(key))favs.delete(key);else favs.add(key);LS.set("pr_favs",[...favs]);renderAll();toast(favs.has(key)?"⭐ В избранном":"Убрано")}
-function openSheet(html){sheetOpen="open";$("#sheetBody").innerHTML=html;$("#sheet").classList.add("show");$("#scrim").classList.add("show");if(tg?.BackButton)tg.BackButton.show()}
-function closeSheet(){sheetOpen=null;$("#sheet").classList.remove("show");$("#scrim").classList.remove("show");if(tg?.BackButton)tg.BackButton.hide()}
-function findCode(key){return codesFor("hotel").concat(codesFor("avia"),codesFor("market"),codesFor("old")).find(x=>x.key===key)}
-function detailSheet(key){
-  const x=findCode(key);if(!x)return;
-  const c=CATALOG[x.brand],dl=daysLeft(x.o.exp);
-  const deal=dealLine(x.o);
-  openSheet(`<h2>${c.emoji} ${esc(c.name)}</h2>
-    <button class="codechip" data-copy="${esc(x.code)}" style="width:100%;justify-content:center"><span class="mono" style="font-size:20px">${esc(x.code)}</span><span>⧉</span></button>
-    ${deal?`<div class="deal" style="font-size:22px;margin:12px 0">${esc(deal)}</div>`:'<div class="deal" style="font-size:18px;margin:12px 0;color:var(--mut)">скидка по условиям акции</div>'}
-    ${x.value?`<div class="save">≈ выгода ${fmt(x.value)} ₽ при ${fmt(budget(c.cat))} ₽</div>`:""}
-    <div class="meta" style="margin:10px 0">${x.o.exp?`<span class="pill ${dl<=2?"danger":dl<=7?"warn":""}">⏳ до ${x.o.exp}${dl!=null?` · ${dl}д`:""}</span>`:""}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
-    <h3>Условия</h3><p style="color:var(--mut);font-size:13px">${esc(x.ctx)}</p>
-    <button class="btn" data-copy="${esc(x.code)}">⧉ Скопировать</button>
-    <button class="btn ghost" data-fav="${esc(x.key)}">${favs.has(x.key)?"★ Убрать":"☆ В избранное"}</button>
-    <button class="btn ghost" id="openSite">↗ ${esc(c.name)}</button>`);
-  $("#openSite").onclick=()=>{tg?.openLink?tg.openLink(c.site):window.open(c.site,"_blank")};
-}
-function subSheet(){
-  const f=(DATA.subs||{})[userId]||{hotel:true,avia:true,market:false};
-  openSheet(`<h2>🔔 Уведомления</h2>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><div class="sw ${f[k]?"on":""}" data-sub="${k}"></div></div>`).join("")+`<p style="color:var(--mut);font-size:12px;margin-top:10px">Изменения отправятся боту.</p>`,"sub");
-}
-function adminSheet(){
-  if(!isAdmin())return;
-  const s=DATA.settings,b=s.budgets;
-  openSheet(`<h2>⚙️ Админ</h2>
-    <div class="grid2">
-      <div class="tile" data-adm="settings">🎛 Настройки<small>интервал, бюджеты</small></div>
-      <div class="tile" data-adm="status">🩺 Статус<small>источники</small></div>
-      <div class="tile" data-adm="subs">👥 Подписчики<small>${Object.keys(DATA.subs||{}).length}</small></div>
-      <div class="tile" data-adm="ann">📣 Объявление<small>рассылка</small></div>
-    </div>`,"admin");
-}
-function adminSettings(){
-  const s=DATA.settings,b=s.budgets;
-  openSheet(`<h2>🎛 Настройки</h2>
-    <div class="row"><div class="lbl">⏱ Интервал</div><select id="aInt">${[5,10,15,30].map(v=>`<option ${v===s.interval?"selected":""}>${v} мин</option>`).join("")}</select></div>
-    <div class="row"><div class="lbl">🌙 Тихие часы 23–08</div><div class="sw ${s.quiet?"on":""}" data-set="quiet"></div></div>
-    <div class="row"><div class="lbl">📢 Рассылка</div><div class="sw ${s.broadcast?"on":""}" data-set="broadcast"></div></div>
-    <h3>💰 Бюджеты</h3>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><b>${fmt(b[k])} ₽</b></div>`).join("")+`<button class="btn ghost" data-adm="admin">⬅️ Назад</button>`,"admin");
-  $("#aInt").onchange=e=>{s.interval=+e.target.value;pending.push({t:"set",k:"interval",v:s.interval});toast("⏱ "+s.interval+" мин")};
-}
-function adminStatus(){
-  const rows=[];
-  for(const[b,c]of Object.entries(CATALOG))for(const[n,u]of c.src){const h=(DATA.http||{})[u],cnt=h&&h.codes?Object.keys(h.codes).length:0;
-    rows.push(`<div class="row"><div class="lbl">${esc(n)} · ${esc(b)}<small>${cnt?cnt+" кодов":"пусто"}</small></div></div>`)}
-  openSheet(`<h2>🩺 Статус</h2>`+(rows.length?rows.join(""):'<p style="color:var(--mut)">Нет данных</p>')+`<button class="btn ghost" data-adm="admin">⬅️</button>`,"admin");
-}
-function adminSubs(){
-  const cnt={hotel:0,avia:0,market:0};Object.values(DATA.subs||{}).forEach(f=>Object.keys(cnt).forEach(k=>f[k]&&cnt[k]++));
-  openSheet(`<h2>👥 Подписчики</h2><p>${Object.keys(DATA.subs||{}).length}</p>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><b>${cnt[k]}</b></div>`).join("")+`<button class="btn ghost" data-adm="admin">⬅️</button>`,"admin");
-}
-function adminAnn(){
-  openSheet(`<h2>📣 Объявление</h2><textarea id="annTxt" rows="4" placeholder="Текст…" style="width:100%;background:var(--sf);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:600 14px Manrope;padding:11px;outline:0"></textarea><button class="btn" id="annSend">📣 Отправить</button><button class="btn ghost" data-adm="admin">⬅️</button>`,"admin");
-  $("#annSend").onclick=()=>{const t=$("#annTxt").value.trim();if(!t)return;pending.push({t:"ann",text:t});toast("📣 В очереди");closeSheet()};
-}
-function syncNow(){if(!pending.length)return;if(!tg?.sendData){toast("Открой через бота");return}
-  try{tg.sendData(JSON.stringify({ops:pending}));pending=[];updateMain()}catch(e){toast("Ошибка")}}
-function updateMain(){if(!tg?.MainButton)return;try{if(pending.length){tg.MainButton.setParams({text:`🔄 ОТПРАВИТЬ · ${pending.length}`,color:"#2ee6a8",text_color:"#071018"});tg.MainButton.show()}else tg.MainButton.hide()}catch(e){}}
+    for k, v in demo.items():
+        if k not in state["seen"]:
+            state["seen"][k] = v
+            state["cache"].setdefault(v["brand"], {"ts": time.time(), "codes": {}})
+            code = k.split(":", 1)[1]
+            state["cache"][v["brand"]]["codes"][code] = v
 
-document.addEventListener("click",e=>{
-  const t=e.target;
-  const cp=t.closest("[data-copy]");if(cp){e.preventDefault();doCopy(cp.dataset.copy);return}
-  const fv=t.closest("[data-fav]");if(fv){e.preventDefault();toggleFav(fv.dataset.fav);if(sheetOpen==="open")detailSheet(fv.dataset.fav);return}
-  const tb=t.closest(".tab");if(tb){e.preventDefault();ui.tab=tb.dataset.tab;document.body.dataset.tab=ui.tab;$$(".tab").forEach(x=>x.classList.toggle("on",x===tb));renderList();return}
-  const ch=t.closest(".chip");if(ch){e.preventDefault();const f=ch.dataset.f;ui.f[f]=!ui.f[f];ch.classList.toggle("on",ui.f[f]);renderList();return}
-  const sb=t.closest("[data-sub]");if(sb){e.preventDefault();const k=sb.dataset.sub;const f=(DATA.subs[userId]=DATA.subs[userId]||{hotel:true,avia:true,market:false});f[k]=!f[k];sb.classList.toggle("on",f[k]);pending.push({t:"sub",cat:k,v:f[k]});updateMain();return}
-  const ad=t.closest("[data-adm]");if(ad){e.preventDefault();const a=ad.dataset.adm;if(a==="admin")adminSheet();else if(a==="settings")adminSettings();else if(a==="status")adminStatus();else if(a==="subs")adminSubs();else if(a==="ann")adminAnn();return}
-  const st=t.closest("[data-set]");if(st){e.preventDefault();const k=st.dataset.set;DATA.settings[k]=!DATA.settings[k];st.classList.toggle("on",DATA.settings[k]);pending.push({t:"set",k,v:DATA.settings[k]});updateMain();return}
-});
+def save_state():
+    try:
+        state["offset"] = offset
+        with open(STATE_FILE, "w", encoding="utf-8") as f: json.dump(state, f, ensure_ascii=False)
+        for cmd in (["git", "add", "state.json"], ["git", "commit", "-m", "state"],
+                    ["git", "pull", "--rebase", "origin", "main"], ["git", "push"]):
+            subprocess.run(cmd, cwd=DIR, check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception: pass
 
-$("#q").addEventListener("input",e=>{ui.q=e.target.value;renderList()});
-$("#sort").addEventListener("change",e=>{ui.sort=e.target.value;renderList()});
-$("#refreshBtn").addEventListener("click",async()=>{const b=$("#refreshBtn");b.style.animation="spin 1s linear infinite";await loadData();b.style.animation="";toast("📡 Обновлено")});
-$("#themeBtn").addEventListener("click",()=>{const r=document.documentElement,n=r.dataset.theme==="dark"?"light":"dark";r.dataset.theme=n;LS.set("pr_theme",n);$("#themeBtn").textContent=n==="dark"?"🌙":"☀️"});
-$("#scrim").addEventListener("click",closeSheet);
-$("#navSub").addEventListener("click",()=>subSheet());
-$("#navFav").addEventListener("click",()=>{ui.f.fav=!ui.f.fav;$$(".chip").forEach(c=>c.classList.toggle("on",c.dataset.f==="fav"&&ui.f.fav));renderAll()});
-$("#navAdmin").addEventListener("click",()=>adminSheet());
+def tg(method, **kw):
+    try: return requests.post(API + "/" + method, json=kw, timeout=10).json()
+    except Exception: return {}
 
-if(tg){try{tg.ready();tg.expand();tg.setHeaderColor("#0a0f1e");tg.setBackgroundColor("#0a0f1e");
-  tg.BackButton?.onClick(closeSheet);
-  tg.MainButton?.onClick(syncNow)}catch(e){}}
-const savedTheme=LS.get("pr_theme",tg?.colorScheme==="light"?"light":"dark");document.documentElement.dataset.theme=savedTheme;$("#themeBtn").textContent=savedTheme==="dark"?"🌙":"☀️";
-loadData();setInterval(()=>{if(!document.hidden)loadData()},6e4);
-</script>
-</body>
-</html>
+def admin_id():
+    if ENV_ADMIN: return ENV_ADMIN
+    if state.get("admin"): return state["admin"]
+    if state["subs"]:
+        first = next(iter(state["subs"]))
+        state["admin"] = first
+        return first
+    return 0
+
+def flags(chat):
+    return state["subs"].setdefault(chat, {"hotel": True, "avia": True, "market": False})
+
+def menu_for(chat):
+    f = flags(chat)
+    is_adm = (chat == admin_id())
+    rows = [
+        [{"text": "🏨 Отели", "callback_data": "cat_hotel"}, {"text": "✈️ Авиабилеты", "callback_data": "cat_avia"}],
+        [{"text": "🛍 Маркетплейсы", "callback_data": "cat_market"}, {"text": "🕘 Старые", "callback_data": "old"}],
+        [{"text": f"🔔 Отели: {'вкл' if f['hotel'] else 'выкл'}", "callback_data": "sub_hotel"},
+         {"text": f"🔔 Авиа: {'вкл' if f['avia'] else 'выкл'}", "callback_data": "sub_avia"}],
+        [{"text": f"🔔 Маркет: {'вкл' if f['market'] else 'выкл'}", "callback_data": "sub_market"}],
+        [{"text": "📱 Мини-апп", "callback_data": "app"}],
+    ]
+    if is_adm:
+        rows.append([{"text": "🔄 Обновить", "callback_data": "refresh"}, {"text": "⚙️ Админ", "callback_data": "admin"}])
+    return {"inline_keyboard": rows}
+
+def send(chat, text):
+    chunks, cur = [], ""
+    for b in text.split("\n\n"):
+        if len(cur) + len(b) + 2 > 3500: chunks.append(cur); cur = b
+        else: cur = (cur + "\n\n" + b) if cur else b
+    if cur: chunks.append(cur)
+    for i, ch in enumerate(chunks):
+        kw = {"chat_id": chat, "text": ch, "parse_mode": "HTML", "disable_web_page_preview": True}
+        if i == len(chunks) - 1: kw["reply_markup"] = menu_for(chat)
+        tg("sendMessage", **kw); time.sleep(0.15)
+
+def app_keyboard():
+    return {"keyboard": [[{"text": "📱 Открыть радар", "web_app": {"url": MINIAPP_URL}}]],
+            "resize_keyboard": True, "is_persistent": True}
+
+def parse_offer(c):
+    if not c: return None, None, None, None, None, []
+    pct = amt = mn = cap = exp = None
+    m = re.search(r"скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%", c, re.I)
+    if m: pct = int(m.group(1))
+    m = re.search(r"скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб)", c, re.I)
+    if m: amt = num(m.group(1))
+    m = re.search(r"от\s*(\d[\d\s]{3,})\s*(?:₽|руб)", c, re.I) or re.search(r"от\s*(\d{4,})\b", c)
+    if m:
+        v = num(m.group(1))
+        if v >= 500: mn = v
+    m = re.search(r"не более\s*(\d[\d\s]{2,})\s*(?:₽|руб)", c, re.I)
+    if m: cap = num(m.group(1))
+    m = re.search(r"до\s*(\d{2})\.(\d{2})\.(\d{2,4})", c)
+    if m:
+        y = int(m.group(3)); y += 2000 if y < 100 else 0
+        exp = f"{m.group(1)}.{m.group(2)}.{y}"
+    tags = []
+    if re.search(r"приложени", c, re.I): tags.append("только в приложении")
+    if re.search(r"перв\w+\s*(заказ|бронирован|оплат)|новых пользователей", c, re.I): tags.append("первое бронирование")
+    if re.search(r"подборк|со страницы|premium", c, re.I): tags.append("из подборки")
+    if re.search(r"2027", c, re.I): tags.append("проживание в 2027")
+    if re.search(r"санатор|в РФ|по России", c, re.I): tags.append("только РФ")
+    return pct, amt, mn, cap, exp, tags
+
+def value(v, budget):
+    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
+    if mn and budget < mn: return 0
+    if a: return a
+    if p:
+        val = budget * p / 100
+        if cap: val = min(val, cap)
+        return int(val)
+    return 0
+
+def sig(v):
+    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
+    return (p, a, mn, cap, exp, tuple(tags))
+
+def block(code, v, mark=None, budget=None, aliases=()):
+    raw = v.get("ctx", "")
+    p, a, mn, cap, exp, tags = parse_offer(raw)
+    if a: line = f"{fmt(a)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
+    elif p: line = f"{p}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
+    else: line = "скидка по условиям акции"
+    out = []
+    if mark: out.append(mark)
+    out.append(f"<code>{html.escape(code)}</code>")
+    out.append(line)
+    if p and budget: out.append(f"≈ выгода {fmt(value(v, budget))} ₽ при сумме {fmt(budget)} ₽")
+    out.append(f"Действует до {exp}" if exp else "Срок не указан")
+    if tags: out.append("⚠️ " + " · ".join(tags[:2]))
+    if aliases: out.append("🔁 ещё: " + " ".join(f"<code>{html.escape(x)}</code>" for x in aliases[:3]))
+    return "\n".join(out)
+
+def render_category(cat, entries):
+    budget = state["settings"]["budgets"][cat]
+    scored = [(b, c, v, value(v, budget)) for b, c, v in entries]
+    ranked = sorted(scored, key=lambda x: -x[3])
+    marks = {}
+    for i, (b, c, v, s) in enumerate(ranked[:3]):
+        if s > 0: marks[b + ":" + c] = "💰 САМЫЙ ВЫГОДНЫЙ" if i == 0 else "🔥 ВЫГОДНЫЙ"
+    by_brand = {}
+    for b, c, v, s in scored: by_brand.setdefault(b, []).append((c, v, s))
+    brand_best = {b: max(x[2] for x in rows) for b, rows in by_brand.items()}
+    parts = []
+    for b in sorted(by_brand, key=lambda x: -brand_best[x]):
+        groups = {}
+        for c, v, s in sorted(by_brand[b], key=lambda x: -x[2]): groups.setdefault(sig(v), []).append((c, v, s))
+        blocks = []
+        for g in groups.values():
+            c, v, s = g[0]
+            blocks.append(block(c, v, marks.get(b + ":" + c), budget, [x[0] for x in g[1:]]))
+        parts.append(BRANDS[b][1] + "\n\n" + "\n\n".join(blocks))
+    return "\n\n".join(parts)
+
+def all_sources():
+    out = []
+    for b, (cat, title, srcs) in BRANDS.items():
+        for name, url in srcs: out.append((b, name, url))
+    for s in state.get("sources_custom", []): out.append((s["brand"], s["name"], s["url"]))
+    return out
+
+def extract_soup(t):
+    soup = BeautifulSoup(t, "html.parser")
+    for x in soup(["script", "style", "noscript"]): x.decompose()
+    text = soup.get_text("\n")
+    m = CUT.search(text)
+    if m: text = text[:m.start()]
+    flat = clean(text); found = {}
+    def add(code, ctx):
+        code = code.strip(" .,:;»)(")
+        if code != code.upper() or code in STOP_WORDS or code in found or BAD.search(ctx): return
+        found[code] = clean(ctx)[:260]
+    for tr in soup.find_all("tr"):
+        cells = [c.get_text(" ", strip=True) for c in tr.find_all(["td", "th"])]
+        if len(cells) >= 3 and CODE_RE.fullmatch(cells[1].strip()): add(cells[1], cells[2] + " · " + cells[0])
+    for m in re.finditer(r"\b([A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,})\s*[—–-]\s*(?i:скидк)[^.]{0,220}\.?", flat): add(m.group(1), m.group(0))
+    for m in re.finditer(r"(?i:промокод\w*)\s*[:→]?\s*([A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,})", flat):
+        s = max(0, m.start() - 160); add(m.group(1), flat[s:m.end() + 160])
+    for m in re.finditer(r"Активировать промокод\s*→\s*([A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,})", flat):
+        s = max(0, m.start() - 230); add(m.group(1), flat[s:m.end()])
+    return found
+
+def fetch_one(brand, name, url, rec):
+    now = time.time(); rec = dict(rec)
+    if now < rec.get("backoff", 0): return brand, url, rec, rec.get("codes", {})
+    try:
+        headers = dict(HEADERS)
+        if rec.get("etag"): headers["If-None-Match"] = rec["etag"]
+        if rec.get("lm"): headers["If-Modified-Since"] = rec["lm"]
+        r = requests.get(url, headers=headers, timeout=(4, 8))
+        if r.status_code == 304: codes = rec.get("codes", {})
+        elif r.status_code in (403, 404, 410, 429):
+            rec["backoff"] = now + 6 * 3600; rec["err"] = "HTTP " + str(r.status_code)
+            return brand, url, rec, rec.get("codes", {})
+        else:
+            r.raise_for_status()
+            codes = {c: {"ctx": ctx, "src": name} for c, ctx in extract_soup(r.text).items()}
+            rec["etag"] = r.headers.get("ETag", ""); rec["lm"] = r.headers.get("Last-Modified", "")
+        if codes: rec["empty"] = 0
+        else:
+            rec["empty"] = rec.get("empty", 0) + 1
+            if rec["empty"] >= 3: rec["backoff"] = now + 6 * 3600
+        rec["codes"] = codes; rec["ok_ts"] = now; rec["err"] = ""
+        return brand, url, rec, codes
+    except requests.Timeout:
+        rec["backoff"] = now + 2 * 3600; rec["err"] = "timeout"
+        return brand, url, rec, rec.get("codes", {})
+    except Exception as e:
+        rec["backoff"] = now + 2 * 3600; rec["err"] = type(e).__name__
+        return brand, url, rec, rec.get("codes", {})
+
+def cycle():
+    global state
+    tasks = [(b, n, u) for b, n, u in all_sources() if u not in state["sources_off"]]
+    per_brand = {}
+    with ThreadPoolExecutor(max_workers=8) as ex:
+        futs = {ex.submit(fetch_one, b, n, u, state["http"].get(u, {})): (b, u) for b, n, u in tasks}
+        for f in as_completed(futs, timeout=60):
+            try: b, url, rec, codes = f.result()
+            except Exception: continue
+            state["http"][url] = rec
+            per_brand.setdefault(b, {})
+            for c, v in codes.items(): per_brand[b].setdefault(c, v)
+    now = time.time(); found = {}
+    for b in BRANDS:
+        codes = per_brand.get(b, {})
+        state["cache"][b] = {"ts": now, "codes": codes}
+        for c, v in codes.items(): found[b + ":" + c] = dict(v, brand=b)
+    if not found: return
+    today = time.strftime("%d.%m.%Y", msk())
+    seen = state["seen"]; notified = state.setdefault("notified", {})
+    for k, v in found.items():
+        if k not in seen and now - notified.get(k, 0) > 24 * 3600:
+            state["digest"][k] = v; notified[k] = now
+        seen[k] = dict(v, miss=0)
+    for k in list(seen):
+        if k not in found:
+            seen[k]["miss"] = seen[k].get("miss", 0) + 1
+            if seen[k]["miss"] >= 3:
+                state["old"][k] = dict(seen[k], gone=today); del seen[k]
+    state["last_poll"] = now
+    if state["digest"] and state["subs"] and state["settings"]["broadcast"]:
+        s = state["settings"]
+        quiet = s.get("quiet") and (msk().tm_hour >= 23 or msk().tm_hour < 8)
+        if not quiet:
+            for cat in CATS:
+                entries = [(v["brand"], k.split(":", 1)[1], v) for k, v in state["digest"].items()
+                           if BRANDS.get(v.get("brand", ""), ("",))[0] == cat]
+                if not entries: continue
+                msg = f"🔔 НОВЫЕ КОДЫ · {CATS[cat]}\n\n" + render_category(cat, entries)
+                msg += "\n\n👆 Нажми на код — он скопируется."
+                for chat, f in state["subs"].items():
+                    if f.get(cat): send(chat, msg)
+            state["digest"] = {}
+    save_state()
+
+def worker():
+    while True:
+        try: cycle()
+        except Exception as e: print(f"[worker] {e}", flush=True)
+        time.sleep(state["settings"]["interval"] * 60)
+
+def admin_refresh_log(chat):
+    now = time.time()
+    header = f"🔄 ЛОГ ОБНОВЛЕНИЯ · {msk_str(now)} МСК"
+    resp = tg("sendMessage", chat_id=chat, text=header + "\n\n⏳ Запуск...")
+    msg_id = resp.get("result", {}).get("message_id") if resp else None
+    
+    lines = [""]
+    total_codes = 0; total_src = 0; ok = 0; err = 0; empty = 0
+    
+    for cat in CATS:
+        cat_lines = [f"\n{CATS[cat]}:"]
+        for b, name, url in all_sources():
+            if b not in BRANDS or BRANDS[b][0] != cat: continue
+            total_src += 1
+            rec = state["http"].get(url, {})
+            n = len(rec.get("codes", {}))
+            total_codes += n
+            if url in state.get("sources_off", []):
+                cat_lines.append(f"⏸ {name} ({b}) — выключен")
+            elif rec.get("backoff", 0) > now:
+                err += 1; cat_lines.append(f"⚠️ {name} ({b}) — {rec.get('err', '')}")
+            elif rec.get("ok_ts"):
+                ago = int((now - rec["ok_ts"]) / 60)
+                if n: ok += 1; cat_lines.append(f"✅ {name} ({b}) — {n} кодов")
+                else: empty += 1; cat_lines.append(f"🈳 {name} ({b}) — 0 кодов")
+            else:
+                empty += 1; cat_lines.append(f"⏳ {name} ({b})")
+        lines.extend(cat_lines)
+        if msg_id:
+            tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
+        time.sleep(0.3)
+    
+    lines.append(f"\n📊 ИТОГО: {total_codes} кодов из {total_src} источников")
+    lines.append(f"✅ {ok} · 🈳 {empty} · ⚠️ {err}")
+    if msg_id:
+        tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
+
+def handle_message(u):
+    global offset
+    if "message" in u and "web_app_data" in u.get("message", {}):
+        msg = u["message"]; chat = msg["chat"]["id"]
+        try: ops = json.loads(msg["web_app_data"]["data"]).get("ops", [])
+        except Exception: return
+        is_adm = chat == admin_id(); done = []
+        for op in ops:
+            t = op.get("t")
+            if t == "sub" and op.get("cat") in CATS:
+                f = state["subs"].setdefault(chat, {"hotel": True, "avia": True, "market": False})
+                f[op["cat"]] = bool(op.get("v")); done.append("подписка " + op["cat"])
+            elif not is_adm: continue
+            elif t == "set" and op.get("k") in ("interval", "quiet", "broadcast"):
+                state["settings"][op["k"]] = op.get("v"); done.append(op["k"])
+            elif t == "budget" and op.get("cat") in CATS:
+                state["settings"]["budgets"][op["cat"]] = int(op.get("v", 0)); done.append("бюджет")
+            elif t == "src_off":
+                off, url = state["sources_off"], op.get("url", "")
+                if op.get("v") and url not in off: off.append(url)
+                if not op.get("v") and url in off: off.remove(url)
+                done.append("источник")
+            elif t == "src_add" and op.get("brand") in BRANDS and str(op.get("url", "")).startswith("http"):
+                state["sources_custom"].append({"brand": op["brand"], "name": "Свой", "url": op["url"]}); done.append("источник+")
+            elif t == "src_del":
+                i = int(op.get("i", -1))
+                if 0 <= i < len(state["sources_custom"]): state["sources_custom"].pop(i); done.append("источник−")
+            elif t == "ann" and op.get("text"):
+                for c in state["subs"]: send(c, "📣 " + html.escape(op["text"][:1500]))
+                done.append("объявление")
+        save_state()
+        send(chat, "✅ " + (", ".join(done) if done else "нет изменений"))
+        return
+    if "callback_query" in u:
+        q = u["callback_query"]; chat = q["message"]["chat"]["id"]; data = q["data"]
+        tg("answerCallbackQuery", callback_query_id=q["id"])
+    elif "message" in u and "text" in u["message"]:
+        chat = u["message"]["chat"]["id"]; data = u["message"]["text"].strip()
+    else: return
+    uid = str(chat); low = data.lower()
+    admin_cmds = {"admin", "adm_int", "adm_quiet", "adm_bc", "adm_status", "adm_src", "adm_subs",
+                  "adm_ann", "adm_add", "adm_back", "refresh", "/admin", "/status", "/refresh"}
+    if data in admin_cmds or data.startswith(("src_", "del_", "adm_bud_")):
+        if chat != admin_id():
+            send(chat, "⛔ Только для админа."); return
+    if chat == admin_id() and state.get("await_ann") and "message" in u:
+        state["await_ann"] = False
+        for c in state["subs"]: send(c, "📣 " + html.escape(data))
+        send(chat, "✅ Разослано."); return
+    if chat == admin_id() and state.get("await_src") and "message" in u:
+        state["await_src"] = False
+        parts = data.split(None, 1)
+        if len(parts) == 2 and parts[0] in BRANDS and parts[1].startswith("http"):
+            state["sources_custom"].append({"brand": parts[0], "name": "Свой", "url": parts[1]})
+            send(chat, "✅ Добавлен!")
+        else:
+            send(chat, "Формат: бренд ссылка\nБренды: " + " ".join(BRANDS.keys()))
+        return
+    if low == "/whoami":
+        send(chat, f"🆔 {chat}\nАдмин: {'✅' if chat == admin_id() else 'нет'}"); return
+    if low == "/start":
+        flags(chat)
+        if not admin_id(): state["admin"] = chat
+        send(chat, "👋 Радар промокодов.\nЖми раздел — коды, выгодные первыми.\n🔔 — уведомления.\n/app — мини-апп."
+             + ("\n⚙️ У тебя Админ и 🔄." if chat == admin_id() else ""))
+        tg("sendMessage", chat_id=chat, text="📱 Мини-апп:", reply_markup=app_keyboard())
+        return
+    if low == "/app" or low == "app":
+        tg("sendMessage", chat_id=chat, text="📱", reply_markup=app_keyboard()); return
+    if low == "/stop":
+        f = flags(chat); f.update({"hotel": False, "avia": False, "market": False})
+        send(chat, "🔕 Отключено."); return
+    if low == "/help":
+        send(chat, "/hotel /avia /market /old /stop /app"); return
+    if low in ("refresh", "/refresh"):
+        admin_refresh_log(chat); return
+    if low in ("cat_hotel", "/hotel"):
+        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "hotel" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
+        if not entries: send(chat, "⏳ Сбор данных..."); return
+        send(chat, f"{CATS['hotel']} · {len(entries)}\n\n" + render_category("hotel", entries) + "\n\n👆 Тап по коду = копировать"); return
+    if low in ("cat_avia", "/avia"):
+        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "avia" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
+        if not entries: send(chat, "⏳ Сбор данных..."); return
+        send(chat, f"{CATS['avia']} · {len(entries)}\n\n" + render_category("avia", entries) + "\n\n👆 Тап по коду = копировать"); return
+    if low in ("cat_market", "/market"):
+        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "market" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
+        if not entries: send(chat, "⏳ Сбор данных..."); return
+        send(chat, f"{CATS['market']} · {len(entries)}\n\n" + render_category("market", entries) + "\n\n👆 Тап по коду = копировать"); return
+    if low in ("old", "/old"):
+        old = state.get("old", {})
+        if not old: send(chat, "🕘 Пусто."); return
+        items = sorted(old.items(), key=lambda kv: kv[1].get("gone", ""), reverse=True)[:20]
+        send(chat, "🕘 СТАРЫЕ\n\n" + "\n\n".join(block(k.split(":", 1)[1], v) + f"\n🕘 {v.get('gone', '?')}" for k, v in items)); return
+    if low.startswith("sub_"):
+        cat = low[4:]; f = flags(chat); f[cat] = not f[cat]
+        send(chat, f"🔔 {CATS[cat]}: {'✅' if f[cat] else '🔕'}"); return
+    if low in ("admin", "/admin"):
+        s = state["settings"]; b = s["budgets"]
+        msg = f"⚙️ АДМИН\n\n⏱ {s['interval']} мин\n🌙 Тихие: {'вкл' if s['quiet'] else 'выкл'}\n📢 Рассылка: {'вкл' if s['broadcast'] else 'выкл'}\n💰 Отели {fmt(b['hotel'])} · Авиа {fmt(b['avia'])} · Маркет {fmt(b['market'])}\n👥 {len(state['subs'])} · 🆔 {admin_id()}"
+        kb = {"inline_keyboard": [
+            [{"text": f"⏱ {s['interval']} мин", "callback_data": "adm_int"}, {"text": f"🌙 {'вкл' if s['quiet'] else 'выкл'}", "callback_data": "adm_quiet"}],
+            [{"text": f"📢 {'вкл' if s['broadcast'] else 'выкл'}", "callback_data": "adm_bc"}, {"text": "🩺 Статус", "callback_data": "adm_status"}],
+            [{"text": "📡 Источники", "callback_data": "adm_src"}, {"text": "👥 Подписчики", "callback_data": "adm_subs"}],
+            [{"text": "📣 Объявление", "callback_data": "adm_ann"}, {"text": "➕ Источник", "callback_data": "adm_add"}],
+        ]}
+        tg("sendMessage", chat_id=chat, text=msg, reply_markup=kb); return
+    if low in ("adm_status", "/status"):
+        now = time.time()
+        lines = ["🩺 СТАТУС", f"Проверка: {msk_str(state['last_poll']) if state['last_poll'] else '—'}", f"Кодов: {len(state['seen'])}", ""]
+        for cat in CATS:
+            lines.append(CATS[cat] + ":")
+            for b, name, url in all_sources():
+                if b not in BRANDS or BRANDS[b][0] != cat: continue
+                rec = state["http"].get(url, {}); n = len(rec.get("codes", {}))
+                if url in state.get("sources_off", []): lines.append(f"⏸ {name}")
+                elif rec.get("backoff", 0) > now: lines.append(f"⚠️ {name} — {rec.get('err', '')}")
+                elif rec.get("ok_ts"): lines.append(f"{'✅' if n else '🈳'} {name} — {n} кодов")
+                else: lines.append(f"⏳ {name}")
+            lines.append("")
+        send(chat, "\n".join(lines)); return
+    if low == "adm_int":
+        opts = [5, 10, 15, 30, 60]; cur = state["settings"]["interval"]
+        state["settings"]["interval"] = opts[(opts.index(cur) + 1) % len(opts)] if cur in opts else 5
+        save_state(); send(chat, f"⏱ {state['settings']['interval']} мин"); return
+    if low == "adm_quiet": state["settings"]["quiet"] = not state["settings"]["quiet"]; save_state(); send(chat, f"🌙 {'вкл' if state['settings']['quiet'] else 'выкл'}"); return
+    if low == "adm_bc": state["settings"]["broadcast"] = not state["settings"]["broadcast"]; save_state(); send(chat, f"📢 {'вкл' if state['settings']['broadcast'] else 'выкл'}"); return
+    if low.startswith("adm_bud_"):
+        cat = low[8:]
+        opts = {"hotel": [30000, 60000, 100000], "avia": [5000, 15000, 30000], "market": [1000, 5000, 10000]}[cat]
+        cur = state["settings"]["budgets"][cat]
+        state["settings"]["budgets"][cat] = opts[(opts.index(cur) + 1) % len(opts)] if cur in opts else opts[0]
+        save_state(); send(chat, f"💰 {cat}: {fmt(state['settings']['budgets'][cat])}"); return
+    if low == "adm_src":
+        rows = []
+        for i, (b, name, url) in enumerate(all_sources()):
+            on = url not in state.get("sources_off", [])
+            rows.append([{"text": f"{'✅' if on else '❌'} {b}·{name}", "callback_data": f"src_{i}"}])
+        for i, s in enumerate(state.get("sources_custom", [])):
+            rows.append([{"text": f"🗑 {s['url'][:30]}", "callback_data": f"del_{i}"}])
+        rows.append([{"text": "⬅️ Назад", "callback_data": "admin"}])
+        tg("sendMessage", chat_id=chat, text="📡 Источники:", reply_markup={"inline_keyboard": rows}); return
+    if low == "adm_subs":
+        send(chat, f"👥 {len(state['subs'])}\n" + "\n".join(map(str, state["subs"])) or "пусто"); return
+    if low == "adm_ann": state["await_ann"] = True; send(chat, "📣 Пришли текст."); return
+    if low == "adm_add":
+        state["await_src"] = True; send(chat, "➕ бренд ссылка\n" + " ".join(BRANDS.keys())); return
+    if low == "adm_back": send(chat, "⬅️"); return
+    if data.startswith("src_"):
+        i = int(data[4:]); srcs = all_sources()
+        if i < len(srcs):
+            url = srcs[i][2]; off = state["sources_off"]
+            if url in off: off.remove(url)
+            else: off.append(url)
+        save_state(); send(chat, "✅"); return
+    if data.startswith("del_"):
+        i = int(data[4:])
+        if i < len(state["sources_custom"]): state["sources_custom"].pop(i)
+        save_state(); send(chat, "🗑"); return
+    send(chat, "Не понял 🙂")
+
+def main():
+    global state, offset
+    load_state()
+    threading.Thread(target=worker, daemon=True).start()
+    last_save = time.time()
+    while True:
+        try:
+            r = requests.get(API + "/getUpdates", params={"offset": offset, "timeout": 50}, timeout=60).json()
+            for u in r.get("result", []):
+                offset = u["update_id"] + 1
+                try: handle_message(u)
+                except Exception as e: print(f"[handle] {e}", flush=True)
+        except Exception as e:
+            print(f"[poll] {e}", flush=True); time.sleep(3)
+        if time.time() - last_save > 30:
+            save_state(); last_save = time.time()
+
+if __name__ == "__main__":
+    main()
