@@ -2,115 +2,132 @@
 <html lang="ru" data-theme="dark">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
 <title>Радар промокодов</title>
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Manrope:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-:root{--bg:#0a0f1e;--sf:#131b2e;--sf2:#1a2440;--ink:#e8f0ff;--mut:#7a8ba8;--line:rgba(120,150,200,.15);--teal:#2ee6a8;--cyan:#39c6ff;--blue:#4d9fff;--gold:#ffb627;--mag:#ff4d9d;--red:#ff5c6c;--grn:#3dffa2;--acc:var(--teal);--acc2:var(--cyan)}
+:root{--bg:#0a0f1e;--sf:#131b2e;--sf2:#1a2440;--ink:#e8f0ff;--mut:#7a8ba8;--line:rgba(120,150,200,.15);--teal:#2ee6a8;--cyan:#39c6ff;--blue:#4d9fff;--gold:#ffb627;--mag:#ff4d9d;--red:#ff5c6c;--grn:#3dffa2;--acc:var(--teal);--acc2:var(--cyan);--tap:44px}
 [data-theme=light]{--bg:#eef2f9;--sf:#fff;--sf2:#eef2fa;--ink:#101b30;--mut:#5a6b8c;--line:rgba(30,60,120,.14);--teal:#0eb984;--cyan:#0e9fd8;--blue:#2f7fe0;--gold:#d98f00;--mag:#e0307f;--red:#e04352;--grn:#0fbf7a}
 body[data-tab=hotel]{--acc:var(--teal);--acc2:var(--cyan)}
 body[data-tab=avia]{--acc:var(--blue);--acc2:var(--cyan)}
 body[data-tab=market]{--acc:var(--mag);--acc2:var(--gold)}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,sans-serif;padding-bottom:80px}
-header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
-.logo{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));animation:spin 4s linear infinite;position:relative}
+body[data-tab=old]{--acc:var(--gold);--acc2:var(--red)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,sans-serif;padding-bottom:calc(64px + env(safe-area-inset-bottom));overscroll-behavior-y:none}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--acc);border-radius:6px}
+header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;background:var(--bg);border-bottom:1px solid var(--line)}
+.logo{width:38px;height:38px;flex:none;border-radius:50%;background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));animation:spin 4s linear infinite;position:relative}
 .logo::after{content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border-radius:50%;background:var(--bg)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.htxt b{font:900 15px Unbounded;display:block}
-.htxt small{color:var(--mut);font-size:11px}
+.htxt{flex:1;min-width:0}
+.htxt b{font:900 14px Unbounded;display:block;letter-spacing:.02em}
+.htxt small{color:var(--mut);font-size:11px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:4px}
-.ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font-size:16px;display:grid;place-items:center;cursor:pointer}
-.tabs{position:sticky;top:64px;z-index:39;display:flex;gap:6px;padding:8px 12px;background:var(--bg);overflow-x:auto;border-bottom:1px solid var(--line)}
-.tab{flex:none;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:8px 14px;font:700 13px Manrope;cursor:pointer}
+.dot.err{background:var(--red)}
+.ibtn{width:var(--tap);height:var(--tap);flex:none;border-radius:12px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font-size:17px;display:grid;place-items:center;cursor:pointer}
+.ibtn:active{transform:scale(.92)}
+.tabs{position:sticky;top:calc(58px + env(safe-area-inset-top));z-index:39;display:flex;gap:6px;padding:8px 12px;background:var(--bg);overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;min-height:38px;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:8px 16px;font:700 13px Manrope;cursor:pointer}
 .tab.on{color:var(--bg);background:linear-gradient(120deg,var(--acc),var(--acc2));border-color:transparent}
-.toolbar{padding:10px 12px;display:grid;gap:8px}
+.toolbar{padding:10px 12px 4px;display:grid;gap:8px}
 .searchrow{display:flex;gap:8px}
-.search{flex:1;display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:0 12px}
-.search input{flex:1;background:none;border:0;outline:0;color:var(--ink);font:600 14px Manrope;padding:10px 0}
-select{background:var(--sf);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:8px 10px;font:700 12px Manrope}
-.chips{display:flex;gap:6px;overflow-x:auto}
-.chip{flex:none;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:6px 11px;font:700 12px Manrope;cursor:pointer}
+.search{flex:1;display:flex;align-items:center;gap:8px;background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:0 12px;min-height:var(--tap)}
+.search input{flex:1;min-width:0;background:none;border:0;outline:0;color:var(--ink);font:600 16px Manrope;padding:10px 0}
+select{min-height:var(--tap);background:var(--sf);border:1px solid var(--line);color:var(--ink);border-radius:12px;padding:0 10px;font:700 13px Manrope}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;min-height:34px;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:6px 12px;font:700 12px Manrope;cursor:pointer}
 .chip.on{color:var(--acc);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 15%,var(--sf))}
-.stats{padding:4px 16px 8px;color:var(--mut);font:600 12px Manrope;display:flex;gap:10px;flex-wrap:wrap}
+.banner{margin:8px 12px 0;padding:10px 12px;border-radius:12px;border:1px solid var(--red);background:color-mix(in srgb,var(--red) 12%,var(--sf));color:var(--red);font:700 12px Manrope}
+.stats{padding:6px 16px 8px;color:var(--mut);font:600 12px Manrope;display:flex;gap:10px;flex-wrap:wrap}
 .stats b{color:var(--acc)}
 main{padding:0 12px;display:grid;gap:16px}
-.brandhead{position:relative;z-index:10;display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 20%,var(--bg)),var(--bg));border-left:4px solid var(--acc);border-radius:12px;margin:16px 0 10px}
+.brandhead{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 20%,var(--bg)),var(--bg));border-left:4px solid var(--acc);border-radius:12px;margin:14px 0 10px}
 .brandhead .emoji{font-size:20px}
-.brandhead b{font:800 14px Unbounded;flex:1}
+.brandhead b{font:800 14px Unbounded;flex:1;min-width:0}
 .brandhead small{color:var(--mut);font:600 11px Manrope}
-.brandhead a{color:var(--acc);font:700 11px Manrope;text-decoration:none;padding:4px 8px;border:1px solid var(--line);border-radius:8px}
+.brandhead a{color:var(--acc);font:700 11px Manrope;text-decoration:none;padding:6px 10px;border:1px solid var(--line);border-radius:8px;min-height:32px;display:grid;place-items:center}
 .cards{display:grid;gap:10px}
-.card{position:relative;background:linear-gradient(160deg,var(--sf),var(--sf2));border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px 16px;animation:rise .4s both}
+.card{position:relative;background:linear-gradient(160deg,var(--sf),var(--sf2));border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px 18px;animation:rise .4s both}
 .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(var(--acc),var(--acc2));border-radius:16px 0 0 16px}
-.card.hot{border-color:color-mix(in srgb,var(--gold) 50%,transparent);box-shadow:0 4px 20px color-mix(in srgb,var(--gold) 20%,transparent)}
+.card.hot{border-color:color-mix(in srgb,var(--gold) 50%,transparent)}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}}
-.ctop{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.ctop{display:flex;align-items:center;gap:8px;margin-bottom:8px;min-height:24px}
 .mark{font:800 10px Unbounded;color:var(--gold);background:color-mix(in srgb,var(--gold) 15%,transparent);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);padding:3px 8px;border-radius:999px}
 .mark.best{color:var(--bg);background:linear-gradient(120deg,var(--gold),#ffd76a);border:0}
 .new{font:800 9px Unbounded;color:var(--grn);border:1px solid color-mix(in srgb,var(--grn) 50%,transparent);padding:2px 7px;border-radius:999px}
-.fav{margin-left:auto;background:none;border:0;font-size:18px;color:var(--mut);cursor:pointer}
+.fav{margin-left:auto;min-width:var(--tap);min-height:var(--tap);background:none;border:0;font-size:20px;color:var(--mut);cursor:pointer}
 .fav.on{color:var(--gold)}
-.codechip{display:inline-flex;align-items:center;gap:10px;background:color-mix(in srgb,var(--acc) 12%,var(--sf));border:1px dashed color-mix(in srgb,var(--acc) 55%,transparent);border-radius:10px;padding:8px 12px;cursor:pointer}
-.codechip .mono{font:700 16px JetBrains Mono;color:var(--acc)}
+.codechip{display:inline-flex;align-items:center;gap:10px;min-height:var(--tap);background:color-mix(in srgb,var(--acc) 12%,var(--sf));border:1px dashed color-mix(in srgb,var(--acc) 55%,transparent);border-radius:10px;padding:8px 12px;cursor:pointer}
+.codechip:active{transform:scale(.96)}
+.codechip .mono{font:700 16px JetBrains Mono;color:var(--acc);word-break:break-all}
 .codechip span:last-child{color:var(--mut);font-size:12px}
-.deal{font:800 18px/1.25 Manrope;margin:8px 0 2px;color:var(--ink)}
-.deal.err{color:var(--red);font-size:13px;font-weight:700}
+.deal{font:800 18px/1.25 Manrope;margin:8px 0 2px}
+.deal.err{color:var(--red);font-size:12px;font-weight:700}
 .save{color:var(--grn);font:700 12px Manrope}
 .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.pill{font:700 11px Manrope;color:var(--mut);background:var(--sf2);border:1px solid var(--line);border-radius:999px;padding:3px 8px}
-.pill.warn{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
-.pill.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}
+.pill{font:700 11px Manrope;color:var(--mut);background:var(--sf2);border:1px solid var(--line);border-radius:999px;padding:4px 9px}
+.pill.warn{color:var(--gold)}
+.pill.danger{color:var(--red)}
 .empty{text-align:center;padding:40px 20px;color:var(--mut)}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;padding:8px 8px;background:var(--bg);border-top:1px solid var(--line)}
-.nbtn{flex:1;display:grid;justify-items:center;gap:2px;background:none;border:0;color:var(--mut);font:700 10px Manrope;cursor:pointer;padding:6px 0;border-radius:10px}
-.nbtn b{font-size:18px;font-weight:400}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;padding:6px 8px calc(6px + env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--line)}
+.nbtn{flex:1;min-height:52px;display:grid;justify-items:center;align-content:center;gap:2px;background:none;border:0;color:var(--mut);font:700 10px Manrope;cursor:pointer;border-radius:12px}
+.nbtn b{font-size:19px;font-weight:400}
 .nbtn.on{color:var(--acc)}
-.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.2s}
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:.2s}
 .scrim.show{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:85vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;border-top:1px solid var(--line);transform:translateY(100%);transition:transform .25s;padding:8px 16px 20px}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;max-height:86vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;border-top:1px solid var(--line);transform:translateY(100%);transition:transform .25s;padding:8px 16px calc(20px + env(safe-area-inset-bottom))}
 .sheet.show{transform:none}
 .grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 12px}
 .sheet h2{font:900 16px Unbounded;margin:4px 0 12px}
 .sheet h3{font:800 13px Unbounded;margin:14px 0 8px;color:var(--acc)}
-.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
-.row .lbl{flex:1;font:700 14px Manrope}
-.row .lbl small{display:block;color:var(--mut);font:600 11px Manrope}
-.sw{width:44px;height:24px;flex:none;border-radius:999px;background:var(--sf2);border:1px solid var(--line);position:relative;cursor:pointer}
-.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.2s}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);min-height:var(--tap)}
+.row .lbl{flex:1;font:700 14px Manrope;min-width:0}
+.row .lbl small{display:block;color:var(--mut);font:600 11px Manrope;word-break:break-word}
+.sw{width:46px;height:26px;flex:none;border-radius:999px;background:var(--sf2);border:1px solid var(--line);position:relative;cursor:pointer}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.2s}
 .sw.on{background:color-mix(in srgb,var(--acc) 30%,var(--sf2));border-color:var(--acc)}
-.sw.on::after{left:22px;background:var(--acc)}
-.btn{display:block;width:100%;border:0;border-radius:12px;padding:12px;font:800 14px Manrope;cursor:pointer;background:linear-gradient(120deg,var(--acc),var(--acc2));color:var(--bg);margin-top:10px}
+.sw.on::after{left:23px;background:var(--acc)}
+.btn{display:block;width:100%;min-height:var(--tap);border:0;border-radius:12px;padding:12px;font:800 14px Manrope;cursor:pointer;background:linear-gradient(120deg,var(--acc),var(--acc2));color:var(--bg);margin-top:10px}
 .btn.ghost{background:var(--sf);color:var(--ink);border:1px solid var(--line)}
-.toast{position:fixed;left:12px;right:12px;bottom:70px;z-index:80;background:var(--sf2);border:1px solid var(--acc);border-radius:12px;padding:10px 12px;font:700 13px Manrope;transform:translateY(20px);opacity:0;transition:.2s;pointer-events:none}
+.btn.red{background:linear-gradient(120deg,var(--red),#ff8a94);color:#fff}
+input.txt,textarea{width:100%;min-height:var(--tap);background:var(--sf);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:600 16px Manrope;padding:10px 12px;outline:0}
+.toast{position:fixed;left:12px;right:12px;bottom:calc(70px + env(safe-area-inset-bottom));z-index:80;background:var(--sf2);border:1px solid var(--acc);border-radius:12px;padding:10px 12px;font:700 13px Manrope;transform:translateY(20px);opacity:0;transition:.2s;pointer-events:none}
 .toast.show{transform:none;opacity:1}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tile{background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font:700 13px Manrope}
+.tile{min-height:64px;background:var(--sf);border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;font:700 13px Manrope;text-align:left}
 .tile small{display:block;color:var(--mut);font:600 11px Manrope;margin-top:2px}
+.logline{font:600 11px JetBrains Mono;color:var(--mut);padding:6px 0;border-bottom:1px solid var(--line);word-break:break-word}
+@media (max-width:360px){.deal{font-size:16px}.codechip .mono{font-size:14px}}
 </style>
 </head>
 <body data-tab="hotel">
 <header>
   <div class="logo"></div>
-  <div class="htxt"><b>РАДАР ПРОМОКОДОВ</b><small><span class="dot"></span><span id="liveTxt">загрузка…</span></small></div>
+  <div class="htxt"><b>РАДАР ПРОМОКОДОВ</b><small><span class="dot" id="liveDot"></span><span id="liveTxt">загрузка…</span></small></div>
   <button class="ibtn" id="themeBtn">🌙</button>
   <button class="ibtn" id="refreshBtn">📡</button>
 </header>
-<div class="tabs">
+<div class="tabs" id="tabs">
   <button class="tab on" data-tab="hotel">🏨 Отели</button>
   <button class="tab" data-tab="avia">✈️ Авиабилеты</button>
   <button class="tab" data-tab="market">🛍 Маркетплейсы</button>
-  <button class="tab" data-tab="old">🕘 Старые</button>
 </div>
 <div class="toolbar">
   <div class="searchrow">
-    <div class="search">🔎<input id="q" placeholder="Код, бренд…"></div>
+    <div class="search">🔎<input id="q" placeholder="Код или бренд…"></div>
     <select id="sort">
-      <option value="value">💰 По выгоде</option>
-      <option value="pct">📊 По % скидки</option>
-      <option value="amt">💵 По сумме</option>
-      <option value="exp">⏳ По сроку</option>
+      <option value="value">💰 Выгода</option>
+      <option value="pct">📊 % скидки</option>
+      <option value="amt">💵 Сумма</option>
+      <option value="exp">⏳ Срок</option>
       <option value="az">🔤 А–Я</option>
     </select>
   </div>
@@ -121,23 +138,26 @@ nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;paddi
     <button class="chip" data-f="fav">⭐ Избранное</button>
   </div>
 </div>
+<div class="banner" id="banner" style="display:none"></div>
 <div class="stats" id="stats"></div>
 <main id="list"></main>
 <nav>
-  <button class="nbtn" id="navSub"><b>🔔</b>Подписки</button>
   <button class="nbtn" id="navFav"><b>⭐</b>Избранное</button>
-  <button class="nbtn" id="navAdmin" style="display:none"><b>⚙️</b>Админ</button>
+  <button class="nbtn" id="navOld"><b>🕘</b>Старые</button>
+  <button class="nbtn" id="navAdmin"><b>🔒</b>Админ</button>
 </nav>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"><div class="grip"></div><div id="sheetBody"></div></div>
 <div class="toast" id="toast"></div>
 <script>
-const REPO="UJTORM/promo-radar",RAW=`https://raw.githubusercontent.com/${REPO}/main/state.json`;
-const tg=window.Telegram?.WebApp;
+"use strict";
+const REPO="UJTORM/promo-radar";
+const RAW=`https://raw.githubusercontent.com/${REPO}/main/state.json`;
+const PASS_B64="ZWFlaGxucXV4Yg=="; // пароль админа (base64)
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt=n=>Number(n).toLocaleString("ru-RU");
-const CATS={hotel:"🏨 Отели",avia:"✈️ Авиабилеты",market:"🛍 Маркетплейсы"};
+const CATS={hotel:"🏨 Отели",avia:"✈️ Авиабилеты",market:"🛍 Маркетплейсы",old:"🕘 Старые"};
 const CATALOG={
  ya:{cat:"hotel",name:"ЯНДЕКС ПУТЕШЕСТВИЯ",emoji:"🟡",site:"https://travel.yandex.ru"},
  os:{cat:"hotel",name:"ОСТРОВОК",emoji:"🔵",site:"https://ostrovok.ru"},
@@ -150,22 +170,11 @@ const CATALOG={
  wb:{cat:"market",name:"WILDBERRIES",emoji:"🟣",site:"https://www.wildberries.ru"},
  ym:{cat:"market",name:"ЯНДЕКС МАРКЕТ",emoji:"🟡",site:"https://market.yandex.ru"}
 };
-// Ручные исправления условий (источник врёт / парсер не разобрал)
-const OVERRIDES={
- "DI-ALL-2O27":{amt:1000,mn:25000},
- "DI-ALL-2027":{amt:1000,mn:25000}
-};
-let DATA=null,DEMO=true,lastFetch=0,pending=[],sheetOpen=null,loadError=null;
-const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
+let DATA=null,DEMO=true,lastFetch=0,loadError=null,adminOk=sessionStorage.getItem("adm")==="1";
+const LS={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 let favs=new Set(LS.get("pr_favs",[]));
+let local=Object.assign({budgets:{hotel:60000,avia:15000,market:5000},refresh:60,overrides:{}},LS.get("pr_local",{}));
 let ui={tab:"hotel",q:"",sort:"value",f:{hot:false,app:false,first:false,fav:false}};
-const userId=tg?.initDataUnsafe?.user?.id||0;
-const isAdmin=()=>{
-  if(!userId)return true;
-  if(DATA?.admin===userId)return true;
-  const subs=Object.keys(DATA?.subs||{});
-  return subs.length>0&&subs[0]===userId;
-};
 
 function parseOffer(code,c){
  if(!c)return{pct:null,amt:null,mn:null,cap:null,exp:null,tags:[]};
@@ -175,52 +184,41 @@ function parseOffer(code,c){
  let amt=null;const am=c.match(/скидк[аи]\s*(?!\d+\s*%)(\d{1,3}(?:[\s\u00a0]\d{3})*|\d+)/i);
  if(am)amt=num1(am[1]);
  let mn=null;const mm=c.match(/от\s*(\d{1,3}(?:[\s\u00a0]\d{3})*|\d{4,})/i);
- if(mm)mn=num1(mm[1]);
+ if(mn==null&&mm)mn=num1(mm[1]);
  let cap=null;const cm=c.match(/(?:не более|макс\w*)\s*\.?\s*(\d{1,3}(?:[\s\u00a0]\d{3})*|\d+)/i);
  if(cm)cap=num1(cm[1]);
  let exp=null;const dm=c.match(/до\s*(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/i);
- if(dm){
-   let y=dm[3];
-   y=y&&y.length===4?+y:(y?2000+ +y:new Date().getFullYear());
-   exp=`${dm[1].padStart(2,"0")}.${dm[2].padStart(2,"0")}.${y}`;
- }
+ if(dm){let y=dm[3];y=y&&y.length===4?+y:(y?2000+ +y:new Date().getFullYear());exp=`${dm[1].padStart(2,"0")}.${dm[2].padStart(2,"0")}.${y}`}
  const tags=[];
  if(/приложени/i.test(c))tags.push("📱 в приложении");
  if(/перв\w+\s*(заказ|бронирован)/i.test(c))tags.push("🆕 первое");
  if(/подборк|из подборк/i.test(c))tags.push("🏷 подборка");
  if(/2027/.test(c))tags.push("📅 2027");
  if(/в РФ|по России/i.test(c))tags.push("🇷🇺 РФ");
- const ov=OVERRIDES[code]||OVERRIDES[(code||"").toUpperCase()];
+ const ov=(local.overrides||{})[code]||((DATA&&DATA.overrides)||{})[code];
  if(ov){pct=ov.pct??pct;amt=ov.amt??amt;mn=ov.mn??mn;cap=ov.cap??cap}
  return{pct,amt,mn,cap,exp,tags};
 }
-const budget=cat=>DATA?.settings?.budgets?.[cat]||{hotel:60000,avia:15000,market:5000}[cat];
+const budget=cat=>(local.budgets||{})[cat]||{hotel:60000,avia:15000,market:5000}[cat];
 function value(o,b){if(o.mn&&b<o.mn)return 0;if(o.amt)return o.amt;if(o.pct){let v=b*o.pct/100;if(o.cap)v=Math.min(v,o.cap);return Math.round(v)}return 0}
 const sig=o=>[o.pct,o.amt,o.mn,o.cap,o.exp,o.tags.join()].join("|");
-function daysLeft(exp){
- if(!exp)return null;
- const p=exp.split(".");
- if(p.length<3)return null;
- const d=new Date(+p[2],+p[1]-1,+p[0]);
- if(isNaN(d.getTime()))return null;
- return Math.ceil((d-Date.now())/864e5);
-}
+function daysLeft(exp){if(!exp)return null;const p=exp.split(".");if(p.length<3)return null;const d=new Date(+p[2],+p[1]-1,+p[0]);return isNaN(d.getTime())?null:Math.ceil((d-Date.now())/864e5)}
 function seed(){
  const S=(b,code,ctx)=>[b+":"+code,{ctx,src:"demo",brand:b}];
  const seen=Object.fromEntries([
   S("ya","NEVOLK","Скидка 5 000 ₽ от 60 000 ₽, проживание в 2027. Действует до 31.12.2026"),
-  S("ya","GS-ALL-2027","Скидка 1 000 ₽ от 10 000 ₽ для всех, проживание в 2027. До 31.12.2026"),
-  S("ya","DI-ALL-2O27","Скидка 1 000 ₽ от 25 000 ₽, проживание в 2027. До 30.11.2026"),
+  S("ya","GS-ALL-2027","Скидка 1 000 ₽ от 10 000 ₽ для всех. До 31.12.2026"),
+  S("ya","DI-ALL-2O27","Скидка 1 000 ₽ от 25 000 ₽. До 30.11.2026"),
   S("os","ЛОВИ","Скидка 11% на бронирование от 20 000 ₽ на любые даты. До 15.11.2026"),
   S("os","КАКАО","Скидка 6% на любую сумму и любые даты. До 10.12.2026"),
-  S("pb","POBEDA500","Скидка 500 ₽ от 5 000 ₽. Действует до 18.12.2026"),
+  S("pb","POBEDA500","Скидка 500 ₽ от 5 000 ₽. До 18.12.2026"),
   S("af","AFL1500","Скидка 1 500 ₽ от 15 000 ₽. До 20.12.2026"),
-  S("s7","S7WINTER","Скидка 10% на билеты, вылеты до 31.03.2027. До 31.12.2026"),
+  S("s7","S7WINTER","Скидка 10% на билеты. До 31.12.2026"),
   S("oz","OZON500","Скидка 500 ₽ от 3 000 ₽. До 16.11.2026"),
   S("wb","WB300","Скидка 300 ₽ от 2 000 ₽. До 30.11.2026"),
-  S("ym","MARKET10","Скидка 10% (не более 1 000 ₽), первый заказ. До 31.12.2026")
+  S("ym","MARKET10","Скидка 10% (не более 1 000 ₽). До 31.12.2026")
  ]);
- return{seen,old:{},http:{},notified:{},settings:{interval:5,quiet:false,broadcast:true,budgets:{hotel:60000,avia:15000,market:5000}},subs:{},admin:userId||1};
+ return{seen,old:{},http:{},log:[],settings:{}};
 }
 async function loadData(){
  loadError=null;
@@ -228,20 +226,16 @@ async function loadData(){
   const r=await fetch(RAW+"?t="+Date.now(),{cache:"no-store"});
   if(!r.ok)throw new Error("HTTP "+r.status);
   const j=await r.json();
-  DATA=Object.assign(seed(),j);
-  DATA.settings=Object.assign({interval:5,quiet:false,broadcast:true,budgets:{hotel:60000,avia:15000,market:5000}},j.settings||{});
-  DATA.settings.budgets=Object.assign({hotel:60000,avia:15000,market:5000},(j.settings||{}).budgets||{});
-  DEMO=false;
- }catch(e){DATA=seed();DEMO=true;loadError=e.message||String(e)}
- lastFetch=Date.now();
- renderAll();
+  DATA=Object.assign(seed(),j);DEMO=false;
+ }catch(e){DATA=seed();DEMO=true;loadError=e&&e.message?e.message:String(e)}
+ lastFetch=Date.now();renderAll();
 }
 function codesFor(tab){
- const src=tab==="old"?DATA.old:DATA.seen,out=[];
- for(const[k,v]of Object.entries(src||{})){
+ const src=tab==="old"?(DATA.old||{}):(DATA.seen||{}),out=[];
+ for(const[k,v]of Object.entries(src)){
   const i=k.indexOf(":");if(i<0)continue;
   const brand=k.slice(0,i),code=k.slice(i+1);
-  const cat=CATALOG[brand]?.cat;if(!cat)continue;
+  const cat=CATALOG[brand]&&CATALOG[brand].cat;if(!cat)continue;
   if(tab!=="old"&&cat!==tab)continue;
   const o=parseOffer(code,v.ctx);
   out.push({key:k,brand,code,ctx:v.ctx||"",src:v.src||"",o,value:value(o,budget(cat)),gone:v.gone,ts:(DATA.notified||{})[k]||0});
@@ -249,21 +243,14 @@ function codesFor(tab){
  return out;
 }
 function filtered(){
- let list=codesFor(ui.tab);
- const q=ui.q.toLowerCase();
- if(q)list=list.filter(x=>x.code.toLowerCase().includes(q)||CATALOG[x.brand]?.name.toLowerCase().includes(q)||x.ctx.toLowerCase().includes(q));
+ let list=codesFor(ui.tab);const q=ui.q.toLowerCase();
+ if(q)list=list.filter(x=>x.code.toLowerCase().includes(q)||(CATALOG[x.brand]||{}).name?.toLowerCase().includes(q)||x.ctx.toLowerCase().includes(q));
  if(ui.f.hot)list=list.filter(x=>x.value>0);
  if(ui.f.app)list=list.filter(x=>x.o.tags.some(t=>t.includes("приложении")));
  if(ui.f.first)list=list.filter(x=>x.o.tags.some(t=>t.includes("первое")));
  if(ui.f.fav)list=list.filter(x=>favs.has(x.key));
  const s=ui.sort;
- list.sort((a,b)=>{
-  if(s==="exp")return(daysLeft(a.o.exp)??999)-(daysLeft(b.o.exp)??999);
-  if(s==="az")return a.code.localeCompare(b.code);
-  if(s==="pct")return(b.o.pct||0)-(a.o.pct||0);
-  if(s==="amt")return(b.o.amt||0)-(a.o.amt||0);
-  return b.value-a.value;
- });
+ list.sort((a,b)=>s==="exp"?(daysLeft(a.o.exp)??999)-(daysLeft(b.o.exp)??999):s==="az"?a.code.localeCompare(b.code):s==="pct"?(b.o.pct||0)-(a.o.pct||0):s==="amt"?(b.o.amt||0)-(a.o.amt||0):b.value-a.value);
  return list;
 }
 function dealLine(o){
@@ -273,145 +260,149 @@ function dealLine(o){
 }
 function renderAll(){renderStatus();renderList();renderNav()}
 function renderStatus(){
- let t=DEMO?"ДЕМО":`LIVE · ${Math.max(0,Math.round((Date.now()-lastFetch)/6e4))} мин`;
- if(loadError)t+=` · ⚠️ ${loadError}`;
- $("#liveTxt").textContent=t;
- $("#navAdmin").style.display=isAdmin()?"":"none";
+ $("#liveDot").className="dot"+(loadError?" err":"");
+ $("#liveTxt").textContent=loadError?`ОШИБКА: ${loadError}`:(DEMO?"ДЕМО-данные":`LIVE · ${Math.max(0,Math.round((Date.now()-lastFetch)/6e4))} мин назад`);
+ const b=$("#banner");
+ if(loadError){b.style.display="";b.textContent=`⚠️ state.json не загрузился (${loadError}). Показаны демо-данные. Проверь Actions в репозитории.`}
+ else b.style.display="none";
 }
 function renderList(){
  const list=filtered(),marks={};
  [...list].sort((a,b)=>b.value-a.value).slice(0,3).forEach((x,i)=>{if(x.value>0)marks[x.key]=i===0?"best":"hot"});
  const groups={};list.forEach(x=>(groups[x.brand]=groups[x.brand]||[]).push(x));
- const order=Object.keys(groups).sort((a,b)=>Math.max(...groups[b].map(x=>x.value))-Math.max(...groups[a].map(x=>x.value)));
+ const order=Object.keys(groups).sort((a,b)=>Math.max(...groups[b].map(x=>x.value),0)-Math.max(...groups[a].map(x=>x.value),0));
  const best=list.length?Math.max(...list.map(x=>x.value)):0;
- let statsHtml=`<span><b>${list.length}</b> кодов</span><span><b>${order.length}</b> брендов</span>${best?`<span>лучшая <b>${fmt(best)} ₽</b></span>`:""}`;
- if(loadError)statsHtml+=`<span style="color:var(--red)">⚠️ state.json: ${esc(loadError)}</span>`;
- $("#stats").innerHTML=statsHtml;
- if(!list.length){$("#list").innerHTML=`<div class="empty">📡 Ничего не нашлось.${loadError?"<br>Ошибка загрузки: "+esc(loadError):""}</div>`;return}
+ $("#stats").innerHTML=`<span><b>${list.length}</b> кодов</span><span><b>${order.length}</b> брендов</span>${best?`<span>лучшая <b>${fmt(best)} ₽</b></span>`:""}`;
+ if(!list.length){$("#list").innerHTML=`<div class="empty">📡 Ничего не нашлось.<br>Сбрось фильтры или обнови 📡</div>`;return}
  let html="";
  for(const b of order){
   const c=CATALOG[b];if(!c)continue;
-  html+=`<section><div class="brandhead"><span class="emoji">${c.emoji}</span><b>${esc(c.name)}</b><small>· ${groups[b].length}</small><a href="${c.site}" target="_blank">сайт ↗</a></div><div class="cards">`;
+  html+=`<section><div class="brandhead"><span class="emoji">${c.emoji}</span><b>${esc(c.name)}</b><small>· ${groups[b].length}</small><a href="${c.site}" target="_blank" rel="noopener">сайт ↗</a></div><div class="cards">`;
   const seenSig={};
   for(const x of groups[b]){
    const s=sig(x.o);
-   if(seenSig[s]){seenSig[s].aliases.push(x);continue}
+   if(seenSig[s]){(seenSig[s].aliases=seenSig[s].aliases||[]).push(x);continue}
    seenSig[s]=x;x.aliases=[];
-   const dl=daysLeft(x.o.exp),expCls=dl==null?"":dl<=2?"danger":dl<=7?"warn":"",isNew=Date.now()/1000-x.ts<86400;
+   const dl=daysLeft(x.o.exp),expCls=dl==null?"":dl<=2?"danger":dl<=7?"warn":"",isNew=Date.now()/1000-x.ts<86400&&ui.tab!=="old";
    const deal=dealLine(x.o);
    html+=`<article class="card ${marks[x.key]?"hot":""}">
-    <div class="ctop">${marks[x.key]?`<span class="mark ${marks[x.key]==="best"?"best":""}">${marks[x.key]==="best"?"💰 САМЫЙ ВЫГОДНЫЙ":"🔥 ВЫГОДНЫЙ"}</span>`:""}${isNew&&ui.tab!=="old"?'<span class="new">NEW</span>':""}<button class="fav ${favs.has(x.key)?"on":""}" data-fav="${esc(x.key)}">${favs.has(x.key)?"★":"☆"}</button></div>
-    <button class="codechip" data-copy="${esc(x.code)}"><span class="mono">${esc(x.code)}</span><span>⧉</span></button>
-    ${deal?`<div class="deal">${esc(deal)}</div>`:`<div class="deal err">⚠️ не распознано: ${esc((x.ctx||"").slice(0,80))}</div>`}
+    <div class="ctop">${marks[x.key]?`<span class="mark ${marks[x.key]==="best"?"best":""}">${marks[x.key]==="best"?"💰 САМЫЙ ВЫГОДНЫЙ":"🔥 ВЫГОДНЫЙ"}</span>`:""}${isNew?'<span class="new">NEW</span>':""}<button class="fav ${favs.has(x.key)?"on":""}" data-fav="${esc(x.key)}" aria-label="в избранное">${favs.has(x.key)?"★":"☆"}</button></div>
+    <button class="codechip" data-copy="${esc(x.code)}"><span class="mono">${esc(x.code)}</span><span>⧉ копировать</span></button>
+    ${deal?`<div class="deal">${esc(deal)}</div>`:`<div class="deal err">⚠️ не распознано: ${esc(x.ctx.slice(0,90))}</div>`}
     ${x.value?`<div class="save">≈ выгода ${fmt(x.value)} ₽ при ${fmt(budget(c.cat))} ₽</div>`:""}
-    <div class="meta">${x.o.exp?`<span class="pill ${expCls}">⏳ до ${x.o.exp}${dl!=null?` · ${dl}д`:""}</span>`:'<span class="pill">срок не указан</span>'}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
+    <div class="meta">${x.o.exp?`<span class="pill ${expCls}">⏳ до ${x.o.exp}${dl!=null?` · ${dl}д`:""}</span>`:'<span class="pill">срок не указан</span>'}${x.gone?`<span class="pill warn">🕘 пропал ${esc(x.gone)}</span>`:""}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
+    ${x.aliases&&x.aliases.length?`<div class="meta">🔁 ${x.aliases.slice(0,4).map(a=>`<button class="pill" data-copy="${esc(a.code)}" style="cursor:pointer">${esc(a.code)}</button>`).join("")}</div>`:""}
    </article>`;
   }
   html+="</div></section>";
  }
  $("#list").innerHTML=html;
 }
-function renderNav(){$("#navFav").classList.toggle("on",ui.f.fav)}
+function renderNav(){$("#navFav").classList.toggle("on",ui.f.fav);$("#navOld").classList.toggle("on",ui.tab==="old");$("#navAdmin").classList.toggle("on",adminOk)}
 async function copyText(t){try{await navigator.clipboard.writeText(t);return true}catch(e){const ta=document.createElement("textarea");ta.value=t;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(_){}ta.remove();return ok}}
 let toastTimer;function toast(msg){$("#toast").textContent=msg;$("#toast").classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>$("#toast").classList.remove("show"),2500)}
-async function doCopy(code){const ok=await copyText(code);toast(ok?`📋 ${code}`:"Ошибка копирования")}
-function toggleFav(key){if(favs.has(key))favs.delete(key);else favs.add(key);LS.set("pr_favs",[...favs]);renderAll();toast(favs.has(key)?"⭐ В избранном":"Убрано")}
-function openSheet(html){sheetOpen="open";$("#sheetBody").innerHTML=html;$("#sheet").classList.add("show");$("#scrim").classList.add("show");if(tg?.BackButton)tg.BackButton.show()}
-function closeSheet(){sheetOpen=null;$("#sheet").classList.remove("show");$("#scrim").classList.remove("show");if(tg?.BackButton)tg.BackButton.hide()}
-function findCode(key){return codesFor("hotel").concat(codesFor("avia"),codesFor("market"),codesFor("old")).find(x=>x.key===key)}
+function openSheet(html){$("#sheetBody").innerHTML=html;$("#sheet").classList.add("show");$("#scrim").classList.add("show");history.pushState({sheet:1},"")}
+function closeSheet(){$("#sheet").classList.remove("show");$("#scrim").classList.remove("show")}
+window.addEventListener("popstate",()=>{if($("#sheet").classList.contains("show"))closeSheet()});
 function detailSheet(key){
- const x=findCode(key);if(!x)return;
- const c=CATALOG[x.brand],dl=daysLeft(x.o.exp);
- const deal=dealLine(x.o);
+ const x=codesFor("hotel").concat(codesFor("avia"),codesFor("market"),codesFor("old")).find(v=>v.key===key);
+ if(!x)return;const c=CATALOG[x.brand],dl=daysLeft(x.o.exp),deal=dealLine(x.o);
  openSheet(`<h2>${c.emoji} ${esc(c.name)}</h2>
   <button class="codechip" data-copy="${esc(x.code)}" style="width:100%;justify-content:center"><span class="mono" style="font-size:20px">${esc(x.code)}</span><span>⧉</span></button>
-  ${deal?`<div class="deal" style="font-size:22px;margin:12px 0">${esc(deal)}</div>`:`<div class="deal err">⚠️ не распознано: ${esc((x.ctx||"").slice(0,120))}</div>`}
+  ${deal?`<div class="deal" style="font-size:22px;margin:12px 0">${esc(deal)}</div>`:`<div class="deal err">⚠️ не распознано: ${esc(x.ctx.slice(0,140))}</div>`}
   ${x.value?`<div class="save">≈ выгода ${fmt(x.value)} ₽ при ${fmt(budget(c.cat))} ₽</div>`:""}
   <div class="meta" style="margin:10px 0">${x.o.exp?`<span class="pill ${dl<=2?"danger":dl<=7?"warn":""}">⏳ до ${x.o.exp}${dl!=null?` · ${dl}д`:""}</span>`:""}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
   <h3>Условия (источник: ${esc(x.src||"—")})</h3><p style="color:var(--mut);font-size:13px">${esc(x.ctx)}</p>
-  <button class="btn" data-copy="${esc(x.code)}">⧉ Скопировать</button>
-  <button class="btn ghost" data-fav="${esc(x.key)}">${favs.has(x.key)?"★ Убрать":"☆ В избранное"}</button>
-  <button class="btn ghost" id="openSite">↗ ${esc(c.name)}</button>`);
- $("#openSite").onclick=()=>{tg?.openLink?tg.openLink(c.site):window.open(c.site,"_blank")};
+  <button class="btn" data-copy="${esc(x.code)}">⧉ Скопировать код</button>
+  <button class="btn ghost" data-fav="${esc(x.key)}">${favs.has(x.key)?"★ Убрать из избранного":"☆ В избранное"}</button>
+  <button class="btn ghost" id="openSite">↗ Открыть ${esc(c.name)}</button>`);
+ $("#openSite").onclick=()=>window.open(c.site,"_blank");
 }
-function subSheet(){
- const f=(DATA.subs||{})[userId]||{hotel:true,avia:true,market:false};
- openSheet(`<h2>🔔 Уведомления</h2>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><div class="sw ${f[k]?"on":""}" data-sub="${k}"></div></div>`).join("")+`<p style="color:var(--mut);font-size:12px;margin-top:10px">Изменения отправятся боту.</p>`);
+function adminLogin(){
+ openSheet(`<h2>🔒 Вход для администратора</h2>
+  <input class="txt" id="pw" type="password" placeholder="Пароль" autocomplete="off">
+  <div id="pwErr" style="color:var(--red);font:700 12px Manrope;margin-top:6px"></div>
+  <button class="btn" id="pwGo">Войти</button>`);
+ $("#pwGo").onclick=()=>{
+  const v=$("#pw").value;
+  try{if(btoa(unescape(encodeURIComponent(v)))===PASS_B64){adminOk=true;sessionStorage.setItem("adm","1");toast("✅ Добро пожаловать");adminSheet()}else{$("#pwErr").textContent="❌ Неверный пароль"}}catch(e){$("#pwErr").textContent="❌ Ошибка: "+e.message}
+ };
+ $("#pw").addEventListener("keydown",e=>{if(e.key==="Enter")$("#pwGo").click()});
 }
 function adminSheet(){
- if(!isAdmin())return;
- const s=DATA.settings,b=s.budgets;
- openSheet(`<h2>⚙️ Админ</h2>
+ if(!adminOk)return adminLogin();
+ const s=DATA||{};
+ openSheet(`<h2>⚙️ Админ-панель</h2>
   <div class="grid2">
-   <div class="tile" data-adm="settings">🎛 Настройки<small>интервал, бюджеты</small></div>
-   <div class="tile" data-adm="status">🩺 Статус<small>источники и ошибки</small></div>
-   <div class="tile" data-adm="subs">👥 Подписчики<small>${Object.keys(DATA.subs||{}).length}</small></div>
-   <div class="tile" data-adm="ann">📣 Объявление<small>рассылка</small></div>
-  </div>`);
+   <button class="tile" data-adm="status">🩺 Статус источников<small>ошибки и коды</small></button>
+   <button class="tile" data-adm="logs">📜 Логи сборщика<small>последние циклы</small></button>
+   <button class="tile" data-adm="settings">🎛 Настройки<small>бюджеты, обновление</small></button>
+   <button class="tile" data-adm="overrides">✏️ Правки условий<small>исправить скидку кода</small></button>
+  </div>
+  <button class="btn red" id="logout">🚪 Выйти из админки</button>`);
+ $("#logout").onclick=()=>{adminOk=false;sessionStorage.removeItem("adm");renderNav();closeSheet();toast("Вы вышли")};
 }
-function adminSettings(){
- const s=DATA.settings,b=s.budgets;
- openSheet(`<h2>🎛 Настройки</h2>
-  <div class="row"><div class="lbl">⏱ Интервал</div><select id="aInt">${[5,10,15,30].map(v=>`<option ${v===s.interval?"selected":""}>${v} мин</option>`).join("")}</select></div>
-  <div class="row"><div class="lbl">🌙 Тихие часы 23–08</div><div class="sw ${s.quiet?"on":""}" data-set="quiet"></div></div>
-  <div class="row"><div class="lbl">📢 Рассылка</div><div class="sw ${s.broadcast?"on":""}" data-set="broadcast"></div></div>
-  <h3>💰 Бюджеты</h3>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><b>${fmt(b[k])} ₽</b></div>`).join("")+`<button class="btn ghost" data-adm="back">⬅️ Назад</button>`);
- $("#aInt").onchange=e=>{s.interval=parseInt(e.target.value);pending.push({t:"set",k:"interval",v:s.interval});toast("⏱ "+s.interval+" мин")};
-}
-function adminStatus(){
- const rows=[];let any=false;
- for(const[b,c]of Object.entries(CATALOG)){
-  const srcs=(DATA.http||{});
-  for(const[url,rec]of Object.entries(srcs)){
-   if(!url.includes(b))continue;
-   any=true;
-   const cnt=rec.codes?Object.keys(rec.codes).length:0;
-   rows.push(`<div class="row"><div class="lbl">${esc(b)}<small>${rec.err?"⚠️ "+esc(rec.err):cnt?cnt+" кодов":"пусто"}</small></div></div>`);
-  }
+function admStatus(){
+ const rows=[];
+ for(const[url,rec]of Object.entries(DATA.http||{})){
+  const n=rec.codes?Object.keys(rec.codes).length:0;
+  rows.push(`<div class="row"><div class="lbl">${esc(url.replace("https://","").slice(0,40))}<small>${rec.err?"⚠️ "+esc(rec.err):n?`✅ ${n} кодов`:"🈳 0 кодов"}${rec.ok_ts?` · ${new Date(rec.ok_ts*1000).toLocaleString("ru-RU")}`:""}</small></div></div>`);
  }
- openSheet(`<h2>🩺 Статус</h2>`+(any?rows.join(""):`<p style="color:var(--mut)">Нет данных об источниках.${loadError?" Ошибка: "+esc(loadError):""}</p>`)+`<button class="btn ghost" data-adm="back">⬅️</button>`);
+ openSheet(`<h2>🩺 Источники</h2>`+(rows.join("")||`<p style="color:var(--mut)">Нет данных. ${loadError?"Ошибка: "+esc(loadError):""}</p>`)+`<button class="btn ghost" data-adm="back">⬅️ Назад</button>`);
 }
-function adminSubs(){
- const cnt={hotel:0,avia:0,market:0};Object.values(DATA.subs||{}).forEach(f=>Object.keys(cnt).forEach(k=>f[k]&&cnt[k]++));
- openSheet(`<h2>👥 Подписчики</h2><p>${Object.keys(DATA.subs||{}).length}</p>`+Object.entries(CATS).map(([k,n])=>`<div class="row"><div class="lbl">${n}</div><b>${cnt[k]}</b></div>`).join("")+`<button class="btn ghost" data-adm="back">⬅️</button>`);
+function admLogs(){
+ const logs=(DATA.log||[]).slice(-12).reverse();
+ openSheet(`<h2>📜 Логи</h2>`+(logs.map(l=>`<div class="logline">${esc(l.ts)} · ${l.dur}s · кодов: ${l.total}${l.errs?" · ⚠️ "+esc(l.errs.slice(0,3).join(", ")):""}</div>`).join("")||"<p style='color:var(--mut)'>Логи появятся после первого цикла сборщика.</p>")+`<button class="btn ghost" data-adm="back">⬅️ Назад</button>`);
 }
-function adminAnn(){
- openSheet(`<h2>📣 Объявление</h2><textarea id="annTxt" rows="4" placeholder="Текст…" style="width:100%;background:var(--sf);border:1px solid var(--line);border-radius:12px;color:var(--ink);font:600 14px Manrope;padding:11px;outline:0"></textarea><button class="btn" id="annSend">📣 Отправить</button><button class="btn ghost" data-adm="back">⬅️</button>`);
- $("#annSend").onclick=()=>{const t=$("#annTxt").value.trim();if(!t)return;pending.push({t:"ann",text:t});toast("📣 В очереди");closeSheet()};
+function admSettings(){
+ openSheet(`<h2>🎛 Настройки (локально)</h2>
+  <div class="row"><div class="lbl">🏨 Бюджет отели</div><b>${fmt(local.budgets.hotel)} ₽</b><button class="ibtn" data-bud="hotel">±</button></div>
+  <div class="row"><div class="lbl">✈️ Бюджет авиа</div><b>${fmt(local.budgets.avia)} ₽</b><button class="ibtn" data-bud="avia">±</button></div>
+  <div class="row"><div class="lbl">🛍 Бюджет маркет</div><b>${fmt(local.budgets.market)} ₽</b><button class="ibtn" data-bud="market">±</button></div>
+  <div class="row"><div class="lbl">🔄 Автообновление</div><b>${local.refresh} сек</b><button class="ibtn" data-ref="1">±</button></div>
+  <button class="btn ghost" data-adm="back">⬅️ Назад</button>`);
 }
-function syncNow(){if(!pending.length)return;if(!tg?.sendData){toast("Открой через бота");return}
- try{tg.sendData(JSON.stringify({ops:pending}));pending=[];updateMain()}catch(e){toast("Ошибка: "+e.message)}}
-function updateMain(){if(!tg?.MainButton)return;try{if(pending.length){tg.MainButton.setParams({text:`🔄 ОТПРАВИТЬ · ${pending.length}`,color:"#2ee6a8",text_color:"#071018"});tg.MainButton.show()}else tg.MainButton.hide()}catch(e){}}
-
+function admOverrides(){
+ const list=Object.entries(local.overrides||{});
+ openSheet(`<h2>✏️ Правки условий</h2>
+  <p style="color:var(--mut);font-size:12px">Если источник врёт — задай верные условия для кода (сохранится локально).</p>
+  ${list.map(([k,v])=>`<div class="row"><div class="lbl"><code>${esc(k)}</code><small>${v.amt?fmt(v.amt)+" ₽":""}${v.pct?v.pct+"%":""}${v.mn?" от "+fmt(v.mn)+" ₽":""}</small></div><button class="ibtn" data-ovdel="${esc(k)}">🗑</button></div>`).join("")}
+  <h3>Добавить правку</h3>
+  <input class="txt" id="ovCode" placeholder="КОД (напр. DI-ALL-2O27)">
+  <input class="txt" id="ovAmt" type="number" placeholder="Скидка, ₽ (напр. 1000)" style="margin-top:8px">
+  <input class="txt" id="ovMn" type="number" placeholder="От суммы, ₽ (напр. 25000)" style="margin-top:8px">
+  <button class="btn" id="ovSave">💾 Сохранить</button>
+  <button class="btn ghost" data-adm="back">⬅️ Назад</button>`);
+ $("#ovSave").onclick=()=>{
+  const code=$("#ovCode").value.trim().toUpperCase();
+  if(!code)return toast("❌ Укажи код");
+  local.overrides[code]={amt:$("#ovAmt").value?+$("#ovAmt").value:null,mn:$("#ovMn").value?+$("#ovMn").value:null};
+  LS.set("pr_local",local);toast("✅ Сохранено");renderList();admOverrides();
+ };
+}
 document.addEventListener("click",e=>{
  const t=e.target;
- const cp=t.closest("[data-copy]");if(cp){e.preventDefault();doCopy(cp.dataset.copy);return}
- const fv=t.closest("[data-fav]");if(fv){e.preventDefault();toggleFav(fv.dataset.fav);if(sheetOpen==="open")detailSheet(fv.dataset.fav);return}
- const tb=t.closest(".tab");if(tb){e.preventDefault();ui.tab=tb.dataset.tab;document.body.dataset.tab=ui.tab;$$(".tab").forEach(x=>x.classList.toggle("on",x===tb));renderList();return}
- const ch=t.closest(".chip");if(ch){e.preventDefault();const f=ch.dataset.f;ui.f[f]=!ui.f[f];ch.classList.toggle("on",ui.f[f]);renderList();return}
- const sb=t.closest("[data-sub]");if(sb){e.preventDefault();const k=sb.dataset.sub;const f=(DATA.subs[userId]=DATA.subs[userId]||{hotel:true,avia:true,market:false});f[k]=!f[k];sb.classList.toggle("on",f[k]);pending.push({t:"sub",cat:k,v:f[k]});updateMain();return}
- const ad=t.closest("[data-adm]");if(ad){e.preventDefault();const a=ad.dataset.adm;if(a==="back")adminSheet();else if(a==="settings")adminSettings();else if(a==="status")adminStatus();else if(a==="subs")adminSubs();else if(a==="ann")adminAnn();return}
- const st=t.closest("[data-set]");if(st){e.preventDefault();const k=st.dataset.set;DATA.settings[k]=!DATA.settings[k];st.classList.toggle("on",DATA.settings[k]);pending.push({t:"set",k,v:DATA.settings[k]});updateMain();return}
+ const cp=t.closest("[data-copy]");if(cp){copyText(cp.dataset.copy).then(ok=>toast(ok?`📋 ${cp.dataset.copy} скопирован`:"❌ Ошибка копирования"));return}
+ const fv=t.closest("[data-fav]");if(fv){const k=fv.dataset.fav;favs.has(k)?favs.delete(k):favs.add(k);LS.set("pr_favs",[...favs]);renderAll();if($("#sheet").classList.contains("show"))detailSheet(k);return}
+ const tb=t.closest(".tab");if(tb){ui.tab=tb.dataset.tab;document.body.dataset.tab=ui.tab;$$(".tab").forEach(x=>x.classList.toggle("on",x===tb));renderList();return}
+ const ch=t.closest(".chip");if(ch){const f=ch.dataset.f;ui.f[f]=!ui.f[f];ch.classList.toggle("on",ui.f[f]);renderList();return}
+ const ad=t.closest("[data-adm]");if(ad){const a=ad.dataset.adm;if(a==="back")adminSheet();else if(a==="status")admStatus();else if(a==="logs")admLogs();else if(a==="settings")admSettings();else if(a==="overrides")admOverrides();return}
+ const bd=t.closest("[data-bud]");if(bd){const k=bd.dataset.bud;const opts={hotel:[30000,60000,100000,150000],avia:[5000,15000,30000],market:[1000,5000,10000]}[k];const i=opts.indexOf(local.budgets[k]);local.budgets[k]=opts[(i+1)%opts.length];LS.set("pr_local",local);renderList();admSettings();return}
+ const rf=t.closest("[data-ref]");if(rf){const opts=[30,60,120,300];const i=opts.indexOf(local.refresh);local.refresh=opts[(i+1)%opts.length];LS.set("pr_local",local);restartTimer();admSettings();return}
+ const od=t.closest("[data-ovdel]");if(od){delete local.overrides[od.dataset.ovdel];LS.set("pr_local",local);renderList();admOverrides();return}
 });
-
 $("#q").addEventListener("input",e=>{ui.q=e.target.value;renderList()});
 $("#sort").addEventListener("change",e=>{ui.sort=e.target.value;renderList()});
 $("#refreshBtn").addEventListener("click",async()=>{const b=$("#refreshBtn");b.style.animation="spin 1s linear infinite";await loadData();b.style.animation="";toast(loadError?"⚠️ "+loadError:"📡 Обновлено")});
-$("#themeBtn").addEventListener("click",()=>{const r=document.documentElement,n=r.dataset.theme==="dark"?"light":"dark";r.dataset.theme=n;LS.set("pr_theme",n);$("#themeBtn").textContent=n==="dark"?"🌙":"☀️"});
+$("#themeBtn").addEventListener("click",()=>{const n=document.documentElement.dataset.theme==="dark"?"light":"dark";document.documentElement.dataset.theme=n;LS.set("pr_theme",n);$("#themeBtn").textContent=n==="dark"?"🌙":"☀️";const mc=document.querySelector('meta[name=theme-color]');if(mc)mc.content=n==="dark"?"#0a0f1e":"#eef2f9"});
 $("#scrim").addEventListener("click",closeSheet);
-$("#navSub").addEventListener("click",()=>subSheet());
 $("#navFav").addEventListener("click",()=>{ui.f.fav=!ui.f.fav;$$(".chip").forEach(c=>c.classList.toggle("on",c.dataset.f==="fav"&&ui.f.fav));renderAll()});
-$("#navAdmin").addEventListener("click",()=>adminSheet());
-
-if(tg){try{tg.ready();tg.expand();tg.setHeaderColor("#0a0f1e");tg.setBackgroundColor("#0a0f1e");
- tg.BackButton?.onClick(closeSheet);
- tg.MainButton?.onClick(syncNow)}catch(e){}}
-
-const savedTheme=LS.get("pr_theme","dark");
-document.documentElement.dataset.theme=savedTheme;
-$("#themeBtn").textContent=savedTheme==="dark"?"🌙":"☀️";
-
-loadData();setInterval(()=>{if(!document.hidden)loadData()},6e4);
+$("#navOld").addEventListener("click",()=>{ui.tab=ui.tab==="old"?"hotel":"old";document.body.dataset.tab=ui.tab;$$(".tab").forEach(x=>x.classList.toggle("on",x.dataset.tab===ui.tab));renderAll()});
+$("#navAdmin").addEventListener("click",()=>{adminOk?adminSheet():adminLogin()});
+document.documentElement.dataset.theme=LS.get("pr_theme","dark");
+$("#themeBtn").textContent=document.documentElement.dataset.theme==="dark"?"🌙":"☀️";
+let timer=null;function restartTimer(){clearInterval(timer);timer=setInterval(()=>{if(!document.hidden)loadData()},(local.refresh||60)*1000)}
+loadData();restartTimer();
 </script>
 </body>
 </html>
