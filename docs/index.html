@@ -25,16 +25,10 @@ body{background:var(--bg0);color:var(--ink);font:15px/1.45 Manrope,system-ui,san
 ::-webkit-scrollbar{width:var(--sb);height:8px}
 ::-webkit-scrollbar-track{background:var(--bg1)}
 ::-webkit-scrollbar-thumb{background:linear-gradient(var(--acc),var(--acc2));border-radius:8px;border:2px solid var(--bg1)}
-::-webkit-scrollbar-thumb:hover{background:var(--acc)}
-*{scrollbar-width:thin;scrollbar-color:var(--acc) var(--bg1)}
 .bg{position:fixed;inset:0;z-index:-2;background:
   radial-gradient(60% 40% at 15% 0%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 70%),
   radial-gradient(50% 35% at 90% 12%,color-mix(in srgb,var(--acc2) 12%,transparent),transparent 70%),
   linear-gradient(180deg,var(--bg1),var(--bg0) 60%)}
-.bg::after{content:"";position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E")}
-.aurora{position:fixed;z-index:-1;width:60vw;height:60vw;border-radius:50%;filter:blur(70px);opacity:.16;background:var(--acc);top:-20vw;left:-15vw;animation:drift 16s ease-in-out infinite alternate}
-.aurora.b{background:var(--acc2);top:auto;bottom:-25vw;left:auto;right:-15vw;animation-delay:-8s}
-@keyframes drift{to{transform:translate(9vw,7vh) scale(1.15)}}
 header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 10px;background:color-mix(in srgb,var(--bg0) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
 .emblem{position:relative;width:42px;height:42px;flex:none;border-radius:50%;border:1px solid var(--line);background:repeating-radial-gradient(circle,transparent 0 6px,color-mix(in srgb,var(--acc) 22%,transparent) 6px 7px);overflow:hidden}
 .emblem::before{content:"";position:absolute;inset:0;background:conic-gradient(from 0deg,transparent 0 70%,color-mix(in srgb,var(--acc) 85%,transparent) 96%,transparent);animation:sweep 3.2s linear infinite}
@@ -64,10 +58,12 @@ select{background:var(--sf);border:1px solid var(--line);color:var(--ink);border
 .chip.on{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 55%,transparent);background:color-mix(in srgb,var(--acc) 12%,var(--sf))}
 .stats{padding:2px 16px 8px;color:var(--mut);font:600 12px Manrope;display:flex;gap:10px;flex-wrap:wrap}
 .stats b{color:var(--acc)}
-main{padding:0 12px;display:grid;gap:14px}
-.brandhead{display:flex;align-items:center;gap:8px;margin:4px 2px 8px;font:800 13px Unbounded;letter-spacing:.02em}
+main{padding:0 12px;display:grid;gap:18px}
+.brandhead{position:sticky;top:calc(120px + env(safe-area-inset-top));z-index:10;display:flex;align-items:center;gap:10px;margin:8px 0 10px;padding:10px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 18%,var(--bg0)),var(--bg0));border-left:4px solid var(--acc);border-radius:0 14px 14px 0;backdrop-filter:blur(8px);box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.brandhead .emoji{font-size:22px}
+.brandhead b{font:800 15px Unbounded;letter-spacing:.02em;flex:1}
 .brandhead small{color:var(--mut);font:600 11px Manrope}
-.brandhead a{margin-left:auto;color:var(--acc);font:700 11px Manrope;text-decoration:none}
+.brandhead a{color:var(--acc);font:700 11px Manrope;text-decoration:none;padding:4px 8px;border:1px solid var(--line);border-radius:8px}
 .cards{display:grid;gap:10px}
 .card{position:relative;background:linear-gradient(160deg,var(--sf),var(--sf2));border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 12px 18px;overflow:hidden;animation:rise .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--d,0ms);transition:transform .15s}
 .card:active{transform:scale(.985)}
@@ -144,7 +140,7 @@ textarea,input.txt{width:100%;background:var(--sf);border:1px solid var(--line);
 </style>
 </head>
 <body data-tab="hotel">
-<div class="bg"></div><div class="aurora"></div><div class="aurora b"></div>
+<div class="bg"></div>
 <header>
   <div class="emblem"><i></i><i></i><i></i></div>
   <div class="htxt"><b>РАДАР ПРОМОКОДОВ</b><small><span class="dot" id="liveDot"></span><span id="liveTxt">подключение…</span></small></div>
@@ -197,26 +193,26 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const fmt=n=>Number(n).toLocaleString("ru-RU");
 const CATS={hotel:"🏨 Отели",avia:"✈️ Авиабилеты",market:"🛍 Маркетплейсы"};
 const CATALOG={
- ya:{cat:"hotel",name:"ЯНДЕКС ПУТЕШЕСТВИЯ",emoji:"🟡",site:"https://travel.yandex.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-yandex-travel"],["7days","https://7days.ru/promokodi/yandex-travel"],["Журнал","https://travel.yandex.ru/journal/"],["TG","https://t.me/s/yandex_travel"]]},
- os:{cat:"hotel",name:"ОСТРОВОК",emoji:"🔵",site:"https://ostrovok.ru",src:[["Блог","https://blog.ostrovok.ru/promokody-ostrovka/"],["Лисёнок","https://lisenok-travel.ru/tpost/ostrovok-promokody-na-skidku"],["7days","https://7days.ru/promokodi/ostrovok"],["TG","https://t.me/s/ostrovok"]]},
- ozt:{cat:"hotel",name:"OZON TRAVEL",emoji:"🟣",site:"https://www.ozon.ru/travel/",src:[["Lovikod","https://lovikod.ru/travel/promokody-ozon-travel"],["7days","https://7days.ru/promokodi/ozon-travel"],["TG","https://t.me/s/ozon_travel"]]},
+ ya:{cat:"hotel",name:"ЯНДЕКС ПУТЕШЕСТВИЯ",emoji:"🟡",site:"https://travel.yandex.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-yandex-travel"],["7days","https://7days.ru/promokodi/yandex-travel"]]},
+ os:{cat:"hotel",name:"ОСТРОВОК",emoji:"🔵",site:"https://ostrovok.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-ostrovok"],["7days","https://7days.ru/promokodi/ostrovok"]]},
+ ozt:{cat:"hotel",name:"OZON TRAVEL",emoji:"🟣",site:"https://www.ozon.ru/travel/",src:[["Lovikod","https://lovikod.ru/travel/promokody-ozon-travel"],["7days","https://7days.ru/promokodi/ozon-travel"]]},
  ot:{cat:"hotel",name:"ОТЕЛЛО",emoji:"🟠",site:"https://otello.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-otello"],["7days","https://7days.ru/promokodi/otello"]]},
  tp:{cat:"hotel",name:"Т-ПУТЕШЕСТВИЯ",emoji:"🟢",site:"https://www.tbank.ru/travel/",src:[["Lovikod","https://lovikod.ru/travel/promokody-t-puteshestviya"],["7days","https://7days.ru/promokodi/t-puteshestviya"]]},
  tv:{cat:"hotel",name:"TRAVELATA",emoji:"🧳",site:"https://travelata.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-travelata"],["7days","https://7days.ru/promokodi/travelata"]]},
  lv:{cat:"hotel",name:"LEVEL.TRAVEL",emoji:"🧳",site:"https://level.travel",src:[["Lovikod","https://lovikod.ru/travel/promokody-level-travel"],["7days","https://7days.ru/promokodi/level-travel"]]},
  tu:{cat:"hotel",name:"ТУТУ.РУ",emoji:"🧳",site:"https://www.tutu.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-tutu"],["7days","https://7days.ru/promokodi/tutu"]]},
- pb:{cat:"avia",name:"ПОБЕДА",emoji:"🟢",site:"https://www.pobeda.aero",src:[["7days","https://7days.ru/promokodi/pobeda"],["TG","https://t.me/s/pobeda"]]},
- ut:{cat:"avia",name:"UTAIR",emoji:"🔵",site:"https://www.utair.ru",src:[["7days","https://7days.ru/promokodi/utair"],["TG","https://t.me/s/utair"]]},
- fz:{cat:"avia",name:"FLYDUBAI",emoji:"🟠",site:"https://www.flydubai.com",src:[["Офиц.","https://www.flydubai.com/en/"],["TG","https://t.me/s/flydubai"]]},
- af:{cat:"avia",name:"АЭРОФЛОТ",emoji:"🔵",site:"https://www.aeroflot.ru",src:[["Акции","https://www.aeroflot.ru/ru-ru/special_offers"],["7days","https://7days.ru/promokodi/aeroflot"],["TG","https://t.me/s/aeroflot"]]},
- s7:{cat:"avia",name:"S7 AIRLINES",emoji:"🟢",site:"https://www.s7.ru",src:[["Акции","https://www.s7.ru/ru/offers/"],["7days","https://7days.ru/promokodi/s7-airlines"],["TG","https://t.me/s/s7airlines"]]},
- ur:{cat:"avia",name:"УРАЛЬСКИЕ АВИАЛИНИИ",emoji:"🔴",site:"https://www.uralairlines.ru",src:[["7days","https://7days.ru/promokodi/ural-airlines"],["TG","https://t.me/s/uralairlines"]]},
- pg:{cat:"avia",name:"PEGASUS",emoji:"🟡",site:"https://www.flypgs.com",src:[["Офиц.","https://www.flypgs.com/en"],["TG","https://t.me/s/flypgs"]]},
- oz:{cat:"market",name:"OZON",emoji:"🟣",site:"https://www.ozon.ru",src:[["7days","https://7days.ru/promokodi/ozon"],["TG","https://t.me/s/ozon"]]},
- wb:{cat:"market",name:"WILDBERRIES",emoji:"🟣",site:"https://www.wildberries.ru",src:[["7days","https://7days.ru/promokodi/wildberries"],["TG","https://t.me/s/wildberries"]]},
- ym:{cat:"market",name:"ЯНДЕКС МАРКЕТ",emoji:"🟡",site:"https://market.yandex.ru",src:[["7days","https://7days.ru/promokodi/yandex-market"],["TG","https://t.me/s/yandex_market"]]},
- mm:{cat:"market",name:"МЕГАМАРКЕТ",emoji:"🟢",site:"https://megamarket.ru",src:[["7days","https://7days.ru/promokodi/megamarket"],["TG","https://t.me/s/megamarket"]]},
- ali:{cat:"market",name:"ALIEXPRESS",emoji:"🟠",site:"https://aliexpress.ru",src:[["7days","https://7days.ru/promokodi/aliexpress"],["TG","https://t.me/s/aliexpress"]]}
+ pb:{cat:"avia",name:"ПОБЕДА",emoji:"🟢",site:"https://www.pobeda.aero",src:[["Lovikod","https://lovikod.ru/travel/promokody-pobeda"],["7days","https://7days.ru/promokodi/pobeda"]]},
+ ut:{cat:"avia",name:"UTAIR",emoji:"🔵",site:"https://www.utair.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-utair"],["7days","https://7days.ru/promokodi/utair"]]},
+ fz:{cat:"avia",name:"FLYDUBAI",emoji:"🟠",site:"https://www.flydubai.com",src:[["Lovikod","https://lovikod.ru/travel/promokody-flydubai"],["7days","https://7days.ru/promokodi/flydubai"]]},
+ af:{cat:"avia",name:"АЭРОФЛОТ",emoji:"🔵",site:"https://www.aeroflot.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-aeroflot"],["7days","https://7days.ru/promokodi/aeroflot"]]},
+ s7:{cat:"avia",name:"S7 AIRLINES",emoji:"🟢",site:"https://www.s7.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-s7"],["7days","https://7days.ru/promokodi/s7-airlines"]]},
+ ur:{cat:"avia",name:"УРАЛЬСКИЕ АВИАЛИНИИ",emoji:"🔴",site:"https://www.uralairlines.ru",src:[["Lovikod","https://lovikod.ru/travel/promokody-ural-airlines"],["7days","https://7days.ru/promokodi/ural-airlines"]]},
+ pg:{cat:"avia",name:"PEGASUS",emoji:"🟡",site:"https://www.flypgs.com",src:[["Lovikod","https://lovikod.ru/travel/promokody-pegasus"],["7days","https://7days.ru/promokodi/pegasus"]]},
+ oz:{cat:"market",name:"OZON",emoji:"🟣",site:"https://www.ozon.ru",src:[["Lovikod","https://lovikod.ru/promokody-ozon"],["7days","https://7days.ru/promokodi/ozon"]]},
+ wb:{cat:"market",name:"WILDBERRIES",emoji:"🟣",site:"https://www.wildberries.ru",src:[["Lovikod","https://lovikod.ru/promokody-wildberries"],["7days","https://7days.ru/promokodi/wildberries"]]},
+ ym:{cat:"market",name:"ЯНДЕКС МАРКЕТ",emoji:"🟡",site:"https://market.yandex.ru",src:[["Lovikod","https://lovikod.ru/promokody-yandex-market"],["7days","https://7days.ru/promokodi/yandex-market"]]},
+ mm:{cat:"market",name:"МЕГАМАРКЕТ",emoji:"🟢",site:"https://megamarket.ru",src:[["Lovikod","https://lovikod.ru/promokody-megamarket"],["7days","https://7days.ru/promokodi/megamarket"]]},
+ ali:{cat:"market",name:"ALIEXPRESS",emoji:"🟠",site:"https://aliexpress.ru",src:[["Lovikod","https://lovikod.ru/promokody-aliexpress"],["7days","https://7days.ru/promokodi/aliexpress"]]}
 };
 let DATA=null,DEMO=true,lastFetch=0,pending=[],selMode=false,sel=new Set(),sheetOpen=null;
 const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
@@ -225,19 +221,32 @@ let ui={tab:"hotel",q:"",sort:"value",f:{hot:false,app:false,first:false,abroad:
 const userId=tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user.id:0;
 const isAdmin=()=>DEMO||!userId||DATA.admin===userId;
 function haptic(t){try{tg&&tg.HapticFeedback&&(t==="ok"?tg.HapticFeedback.notificationOccurred("success"):tg.HapticFeedback.impactOccurred("light"))}catch(e){}}
-function parseOffer(c){c=c||"";const g=re=>{const m=c.match(re);return m?m[1].replace(/\s/g,""):null};
- let pct=g(/скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%/i),amt=g(/скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
- mn=g(/от\s*(\d[\d\s]{3,})\s*(?:₽|руб)/i)||g(/от\s*(\d{4,})\b/),cap=g(/не более\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
- exp=(c.match(/до\s*(\d{2}\.\d{2}\.\d{2,4})/)||[])[1]||null;
+function cleanCtx(code,ctx){
+ if(!ctx)return"";
+ ctx=ctx.replace(new RegExp("\\b"+code.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b\\s*[—–:→]?\\s*","gi"),"");
+ ctx=ctx.replace(new RegExp("промокод\\s*[:→]?\\s*"+code.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi"),"");
+ ctx=ctx.replace(new RegExp("\\b"+code.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b","g"),"");
+ return ctx.replace(/\s+/g," ").trim();
+}
+function parseOffer(c){
+ if(!c)return{pct:null,amt:null,mn:null,cap:null,exp:null,tags:[]};
+ c=typeof c==="string"?c:(c.ctx||"");
+ const g=re=>{const m=c.match(re);return m?m[1].replace(/\s/g,""):null};
+ let pct=g(/скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%/i),
+     amt=g(/скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
+     mn=g(/от\s*(\d[\d\s]{3,})\s*(?:₽|руб)/i)||g(/от\s*(\d{4,})\b/),
+     cap=g(/не более\s*(\d[\d\s]{2,})\s*(?:₽|руб)/i),
+     exp=(c.match(/до\s*(\d{2})\.(\d{2})\.(\d{2,4})/)||[])[1]||null;
  if(exp){const p=exp.split(".");let y=+p[2];if(y<100)y+=2000;exp=`${p[0]}.${p[1]}.${y}`}
  const tags=[];if(/приложени/i.test(c))tags.push("📱 в приложении");if(/перв\w+\s*(заказ|бронирован|оплат)|новых пользователей/i.test(c))tags.push("🆕 первое");if(/подборк|со страницы|premium/i.test(c))tags.push("🏷 подборка");if(/2027/.test(c))tags.push("📅 проживание 2027");if(/санатор|в РФ|по России|территории РФ/i.test(c))tags.push("🇷🇺 только РФ");
- return{pct:pct?+pct:null,amt:amt?+amt:null,mn:mn?+mn:null,cap:cap?+cap:null,exp,tags}}
+ return{pct:pct?+pct:null,amt:amt?+amt:null,mn:mn?+mn:null,cap:cap?+cap:null,exp,tags};
+}
 const budget=cat=>DATA.settings.budgets[cat]||{hotel:60000,avia:15000,market:5000}[cat];
 function value(o,b){if(o.mn&&b<o.mn)return 0;if(o.amt)return o.amt;if(o.pct){let v=b*o.pct/100;if(o.cap)v=Math.min(v,o.cap);return Math.round(v)}return 0}
 const sig=o=>[o.pct,o.amt,o.mn,o.cap,o.exp,o.tags.join()].join("|");
 function daysLeft(exp){if(!exp)return null;const p=exp.split("."),d=new Date(+p[2],+p[1]-1,+p[0]);return Math.ceil((d-Date.now())/864e5)}
 function seed(){const now=Date.now()/1000,S=(b,code,ctx)=>[b+":"+code,{ctx,src:"demo",brand:b}];
- const seen=Object.fromEntries([S("ya","NEVOLK","Скидка 5 000 ₽ от 60 000 ₽, проживание в 2027. Действует до 31.12.2026"),S("ya","GS-ALL-2027","Скидка 1 000 ₽ от 10 000 ₽ для всех, проживание в 2027. До 31.12.2026"),S("ya","SURF5","Скидка 5 000 ₽ от 75 000 ₽, проживание с 2027. До 31.12.2026"),S("os","ЛОВИ","Скидка 11% на бронирование от 20 000 ₽ на любые даты. До 15.11.2026"),S("os","КАКАО","Скидка 6% на любую сумму и любые даты. До 10.12.2026"),S("os","ЛЕЖАТЬ","Скидка 3 000 ₽ от 30 000 ₽. Действует до 15.12.2026"),S("os","MOBILE20","Скидка 20% (не более 2 000 ₽), только в мобильном приложении, первое бронирование. До 31.12.2026"),S("ozt","OZONTRIP","Скидка 2 000 ₽ от 20 000 ₽ на отели. До 20.12.2026"),S("ot","OTELLO7","Скидка 7% на первое бронирование в приложении. До 31.12.2026"),S("tp","TP1500","Скидка 1 500 ₽ от 15 000 ₽. До 25.12.2026"),S("s7","S7WINTER","Скидка 10% на билеты, вылеты до 31.03.2027. До 31.12.2026"),S("af","AFL1500","Скидка 1 500 ₽ от 15 000 ₽. До 20.12.2026"),S("ut","UT1000","Скидка 1 000 ₽ от 8 000 ₽. До 31.12.2026"),S("fz","FZ20","Скидка 20% (не более 3 000 ₽). До 15.12.2026"),S("pb","POBEDA500","Скидка 500 ₽ от 5 000 ₽. До 18.12.2026"),S("pg","PGS15","Скидка 15% на международные рейсы. До 31.12.2026"),S("oz","OZON500","Скидка 500 ₽ от 3 000 ₽. До 16.11.2026"),S("wb","WB300","Скидка 300 ₽ от 2 000 ₽. До 30.11.2026"),S("ym","MARKET10","Скидка 10% (не более 1 000 ₽), первый заказ. До 31.12.2026"),S("mm","MEGA700","Скидка 700 ₽ от 5 000 ₽. До 28.11.2026"),S("ali","ALI5","Скидка 5% (не более 800 ₽). До 31.12.2026")]);
+ const seen=Object.fromEntries([S("ya","NEVOLK","Скидка 5 000 ₽ от 60 000 ₽, проживание в 2027. Действует до 31.12.2026"),S("ya","GS-ALL-2027","Скидка 1 000 ₽ от 10 000 ₽ для всех, проживание в 2027. До 31.12.2026"),S("os","ЛОВИ","Скидка 11% на бронирование от 20 000 ₽ на любые даты. До 15.11.2026"),S("os","КАКАО","Скидка 6% на любую сумму и любые даты. До 10.12.2026"),S("s7","S7WINTER","Скидка 10% на билеты, вылеты до 31.03.2027. До 31.12.2026"),S("af","AFL1500","Скидка 1 500 ₽ от 15 000 ₽. До 20.12.2026"),S("oz","OZON500","Скидка 500 ₽ от 3 000 ₽. До 16.11.2026")]);
  const notified={};Object.keys(seen).forEach((k,i)=>notified[k]=now-(i<4?3600:86400*3));
  return{seen,old:{"os:ВОЛНА":{ctx:"Скидка 7% на любую сумму. До 15.11.2026",brand:"os",gone:"15.11.2026"}},http:{},notified,settings:{interval:5,quiet:false,broadcast:true,budgets:{hotel:60000,avia:15000,market:5000}},subs:{},sources_off:[],sources_custom:[],admin:userId||1}}
 async function loadData(){try{const r=await fetch(RAW+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)throw 0;const j=await r.json();
@@ -246,7 +255,7 @@ async function loadData(){try{const r=await fetch(RAW+"?t="+Date.now(),{cache:"n
  lastFetch=Date.now();renderAll()}
 function codesFor(tab){const src=tab==="old"?DATA.old:DATA.seen,out=[];
  for(const[k,v]of Object.entries(src||{})){const i=k.indexOf(":");if(i<0)continue;const brand=k.slice(0,i),code=k.slice(i+1);const cat=CATALOG[brand]&&CATALOG[brand].cat;if(!cat)continue;if(tab!=="old"&&cat!==tab)continue;
-  const o=parseOffer(v.ctx);out.push({key:k,brand,code,ctx:v.ctx||"",src:v.src||"",o,value:value(o,budget(cat)),gone:v.gone,ts:(DATA.notified||{})[k]||0})}
+  const rawCtx=v.ctx||"";const clean=cleanCtx(code,rawCtx);const o=parseOffer(clean);out.push({key:k,brand,code,ctx:rawCtx,clean,src:v.src||"",o,value:value(o,budget(cat)),gone:v.gone,ts:(DATA.notified||{})[k]||0})}
  return out}
 function filtered(){let list=codesFor(ui.tab);const q=ui.q.toLowerCase();
  if(q)list=list.filter(x=>x.code.toLowerCase().includes(q)||CATALOG[x.brand].name.toLowerCase().includes(q)||x.ctx.toLowerCase().includes(q));
@@ -258,8 +267,8 @@ function filtered(){let list=codesFor(ui.tab);const q=ui.q.toLowerCase();
  if(ui.f.fav)list=list.filter(x=>favs.has(x.key));
  const s=ui.sort;list.sort((a,b)=>s==="exp"?(daysLeft(a.o.exp)??999)-(daysLeft(b.o.exp)??999):s==="new"?b.ts-a.ts:s==="az"?a.code.localeCompare(b.code):b.value-a.value);
  return list}
-function dealLine(o){if(o.amt)return`${fmt(o.amt)} ₽`+(o.mn?` от ${fmt(o.mn)} ₽`:"");if(o.pct)return`${o.pct}%`+(o.mn?` от ${fmt(o.mn)} ₽`:"")+(o.cap?` (макс. ${fmt(o.cap)} ₽)`:"");return"скидка по условиям акции"}
-function renderAll(){renderStatus();renderList();renderNav();updateMain()}
+function dealLine(o){if(o.amt)return`${fmt(o.amt)} ₽`+(o.mn?` от ${fmt(o.mn)} ₽`:"");if(o.pct)return`${o.pct}%`+(o.mn?` от ${fmt(o.mn)} ₽`:"")+(o.cap?` (макс. ${fmt(o.cap)} ₽)`:"");return null}
+function renderAll(){renderStatus();renderList();renderNav()}
 function renderStatus(){$("#liveDot").className="dot"+(DEMO?" demo":"");
  $("#liveTxt").textContent=DEMO?"ДЕМО · нет связи с ботом":`LIVE · ${Math.max(0,Math.round((Date.now()-lastFetch)/6e4))} мин назад`;
  $("#favCount").textContent=favs.size?`⭐ ${favs.size}`:"Избранное"}
@@ -271,14 +280,15 @@ function renderList(){const list=filtered(),marks={};
  $("#stats").innerHTML=`<span><b>${list.length}</b> кодов</span><span><b>${order.length}</b> брендов</span>${best?`<span>лучшая выгода <b>${fmt(best)} ₽</b></span>`:""}`;
  if(!list.length){$("#list").innerHTML=`<div class="empty"><span class="rad">📡</span>Ничего не нашлось.<br>Сбрось фильтры или нажми 📡 сверху.</div>`;return}
  let html="",d=0;
- for(const b of order){const c=CATALOG[b];html+=`<section><div class="brandhead">${c.emoji} ${esc(c.name)} <small>· ${groups[b].length}</small><a href="${c.site}" target="_blank" rel="noopener">сайт ↗</a></div><div class="cards">`;
+ for(const b of order){const c=CATALOG[b];html+=`<section><div class="brandhead"><span class="emoji">${c.emoji}</span><b>${esc(c.name)}</b><small>· ${groups[b].length} кодов</small><a href="${c.site}" target="_blank" rel="noopener">сайт ↗</a></div><div class="cards">`;
   const seenSig={};
   for(const x of groups[b]){const s=sig(x.o);if(seenSig[s]){seenSig[s].aliases.push(x);continue}seenSig[s]=x;x.aliases=[];
    const dl=daysLeft(x.o.exp),expCls=dl==null?"":dl<=2?"danger":dl<=7?"warn":"",isNew=Date.now()/1000-x.ts<86400;
+   const deal=dealLine(x.o);
    html+=`<article class="card ${marks[x.key]?"hot":""}" data-key="${esc(x.key)}" style="--d:${Math.min(d++,12)*45}ms">
    <div class="ctop">${marks[x.key]?`<span class="mark ${marks[x.key]==="best"?"best":""}">${marks[x.key]==="best"?"💰 САМЫЙ ВЫГОДНЫЙ":"🔥 ВЫГОДНЫЙ"}</span>`:""}${isNew&&ui.tab!=="old"?'<span class="new">NEW</span>':""}${selMode?`<input type="checkbox" class="sel" data-sel="${esc(x.key)}" ${sel.has(x.key)?"checked":""}>`:""}<button class="fav ${favs.has(x.key)?"on":""}" data-fav="${esc(x.key)}">${favs.has(x.key)?"★":"☆"}</button></div>
    <button class="codechip" data-copy="${esc(x.code)}"><span class="mono">${esc(x.code)}</span><span>⧉ копировать</span></button>
-   <div class="deal">${esc(dealLine(x.o))}</div>
+   ${deal?`<div class="deal">${esc(deal)}</div>`:'<div class="deal" style="color:var(--mut)">скидка по условиям акции</div>'}
    ${x.value?`<div class="save">≈ выгода ${fmt(x.value)} ₽ при сумме ${fmt(budget(c.cat))} ₽</div>`:""}
    <div class="meta">${x.o.exp?`<span class="pill ${expCls}">⏳ до ${x.o.exp}${dl!=null?` · ${dl} дн`:""}</span>`:'<span class="pill">срок не указан</span>'}${x.gone?`<span class="pill warn">🕘 пропал ${esc(x.gone)}</span>`:""}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
    <div class="aliases" data-aliases="${esc(x.key)}" style="display:none">🔁 ещё:</div>
@@ -297,12 +307,13 @@ function openSheet(html,id){sheetOpen=id;$("#sheetBody").innerHTML=html;$("#shee
 function closeSheet(){sheetOpen=null;$("#sheet").classList.remove("show");$("#scrim").classList.remove("show");try{tg&&tg.BackButton&&tg.BackButton.hide()}catch(e){}}
 function findCode(key){return codesFor("hotel").concat(codesFor("avia"),codesFor("market"),codesFor("old")).find(x=>x.key===key)}
 function detailSheet(key){const x=findCode(key);if(!x)return;const c=CATALOG[x.brand],dl=daysLeft(x.o.exp);
+ const deal=dealLine(x.o);
  openSheet(`<h2>${c.emoji} ${esc(c.name)}</h2>
  <button class="codechip" data-copy="${esc(x.code)}" style="width:100%;justify-content:center"><span class="mono" style="font-size:22px">${esc(x.code)}</span><span>⧉</span></button>
- <div class="deal" style="font-size:24px;margin:14px 0 4px">${esc(dealLine(x.o))}</div>
+ ${deal?`<div class="deal" style="font-size:24px;margin:14px 0 4px">${esc(deal)}</div>`:'<div class="deal" style="font-size:20px;margin:14px 0 4px;color:var(--mut)">скидка по условиям акции</div>'}
  ${x.value?`<div class="save" style="font-size:14px">≈ выгода ${fmt(x.value)} ₽ при вашем бюджете ${fmt(budget(c.cat))} ₽</div>`:""}
  <div class="meta" style="margin:12px 0">${x.o.exp?`<span class="pill ${dl<=2?"danger":dl<=7?"warn":""}">⏳ до ${x.o.exp}${dl!=null?` · ${dl} дн`:""}</span>`:""}${x.o.tags.map(t=>`<span class="pill">${esc(t)}</span>`).join("")}</div>
- <h3>Условия</h3><p style="color:var(--mut);font-size:13px">${esc(x.ctx)}</p>
+ <h3>Условия</h3><p style="color:var(--mut);font-size:13px">${esc(x.clean||x.ctx)}</p>
  <p style="color:var(--mut);font-size:12px">Источник: ${esc(x.src||"—")}</p>
  <button class="btn" data-copy="${esc(x.code)}">⧉ Скопировать код</button>
  <button class="btn ghost" data-fav="${esc(x.key)}">${favs.has(x.key)?"★ Убрать из избранного":"☆ В избранное"}</button>
@@ -369,7 +380,7 @@ document.addEventListener("click",e=>{const t=e.target;
 $("#q").oninput=e=>{ui.q=e.target.value;renderList()};
 $("#sort").onchange=e=>{ui.sort=e.target.value;renderList()};
 $("#refreshBtn").onclick=async()=>{const b=$("#refreshBtn");b.classList.add("spin");haptic();await loadData();b.classList.remove("spin");toast(DEMO?"📡 Демо-данные":"📡 Обновлено")};
-$("#themeBtn").onclick=()=>{const r=document.documentElement,n=r.dataset.theme==="dark"?"light":"dark";r.dataset.theme=n;LS.set("pr_theme",n);$("#themeBtn").textContent=n==="dark"?"🌙":"️";try{tg&&tg.setHeaderColor(n==="dark"?"#070d18":"#eef2f9")}catch(e){}};
+$("#themeBtn").onclick=()=>{const r=document.documentElement,n=r.dataset.theme==="dark"?"light":"dark";r.dataset.theme=n;LS.set("pr_theme",n);$("#themeBtn").textContent=n==="dark"?"🌙":"☀️";try{tg&&tg.setHeaderColor(n==="dark"?"#070d18":"#eef2f9")}catch(e){}};
 $("#scrim").onclick=closeSheet;
 $("#navSub").onclick=()=>{haptic();subSheet()};
 $("#navFav").onclick=()=>{ui.f.fav=!ui.f.fav;$$(".chip").forEach(c=>c.classList.toggle("on",c.dataset.f==="fav"&&ui.f.fav));renderAll()};
