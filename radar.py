@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Промокод-радар v11: обновить=только админ с логом, чистый парсинг."""
+"""Промокод-радар v12: только рабочие источники, живой лог."""
 import html, json, os, random, re, subprocess, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
@@ -15,26 +15,26 @@ MINIAPP_URL = "https://ujtorm.github.io/promo-radar/"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
 CATS = {"hotel": "🏨 ОТЕЛИ", "avia": "✈️ АВИАБИЛЕТЫ", "market": "🛍 МАРКЕТПЛЕЙСЫ"}
 BRANDS = {
- "ya": ("hotel", "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel"), ("7days", "https://7days.ru/promokodi/yandex-travel")]),
- "os": ("hotel", "🔵 ОСТРОВОК", [("Lovikod", "https://lovikod.ru/travel/promokody-ostrovok"), ("7days", "https://7days.ru/promokodi/ostrovok")]),
- "ozt": ("hotel", "🟣 OZON TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel"), ("7days", "https://7days.ru/promokodi/ozon-travel")]),
- "ot": ("hotel", "🟠 ОТЕЛЛО", [("Lovikod", "https://lovikod.ru/travel/promokody-otello"), ("7days", "https://7days.ru/promokodi/otello")]),
- "tp": ("hotel", "🟢 Т-ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-t-puteshestviya"), ("7days", "https://7days.ru/promokodi/t-puteshestviya")]),
- "tv": ("hotel", "🧳 TRAVELATA", [("Lovikod", "https://lovikod.ru/travel/promokody-travelata"), ("7days", "https://7days.ru/promokodi/travelata")]),
- "lv": ("hotel", "🧳 LEVEL.TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-level-travel"), ("7days", "https://7days.ru/promokodi/level-travel")]),
- "tu": ("hotel", "🧳 ТУТУ.РУ", [("Lovikod", "https://lovikod.ru/travel/promokody-tutu"), ("7days", "https://7days.ru/promokodi/tutu")]),
- "pb": ("avia", "🟢 ПОБЕДА", [("Lovikod", "https://lovikod.ru/travel/promokody-pobeda"), ("7days", "https://7days.ru/promokodi/pobeda")]),
- "ut": ("avia", "🔵 UTAIR", [("Lovikod", "https://lovikod.ru/travel/promokody-utair"), ("7days", "https://7days.ru/promokodi/utair")]),
- "fz": ("avia", "🟠 FLYDUBAI", [("Lovikod", "https://lovikod.ru/travel/promokody-flydubai"), ("7days", "https://7days.ru/promokodi/flydubai")]),
- "af": ("avia", "🔵 АЭРОФЛОТ", [("Lovikod", "https://lovikod.ru/travel/promokody-aeroflot"), ("7days", "https://7days.ru/promokodi/aeroflot")]),
- "s7": ("avia", "🟢 S7", [("Lovikod", "https://lovikod.ru/travel/promokody-s7"), ("7days", "https://7days.ru/promokodi/s7-airlines")]),
- "ur": ("avia", "🔴 УРАЛЬСКИЕ АВИАЛИНИИ", [("Lovikod", "https://lovikod.ru/travel/promokody-ural-airlines"), ("7days", "https://7days.ru/promokodi/ural-airlines")]),
- "pg": ("avia", "🟡 PEGASUS", [("Lovikod", "https://lovikod.ru/travel/promokody-pegasus"), ("7days", "https://7days.ru/promokodi/pegasus")]),
- "oz": ("market", "🟣 OZON", [("Lovikod", "https://lovikod.ru/promokody-ozon"), ("7days", "https://7days.ru/promokodi/ozon")]),
- "wb": ("market", "🟣 WILDBERRIES", [("Lovikod", "https://lovikod.ru/promokody-wildberries"), ("7days", "https://7days.ru/promokodi/wildberries")]),
- "ym": ("market", "🟡 ЯНДЕКС МАРКЕТ", [("Lovikod", "https://lovikod.ru/promokody-yandex-market"), ("7days", "https://7days.ru/promokodi/yandex-market")]),
- "mm": ("market", "🟢 МЕГАМАРКЕТ", [("Lovikod", "https://lovikod.ru/promokody-megamarket"), ("7days", "https://7days.ru/promokodi/megamarket")]),
- "ali": ("market", "🟠 ALIEXPRESS", [("Lovikod", "https://lovikod.ru/promokody-aliexpress"), ("7days", "https://7days.ru/promokodi/aliexpress")]),
+ "ya": ("hotel", "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel")]),
+ "os": ("hotel", "🔵 ОСТРОВОК", []),
+ "ozt": ("hotel", "🟣 OZON TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel")]),
+ "ot": ("hotel", "🟠 ОТЕЛЛО", [("Lovikod", "https://lovikod.ru/travel/promokody-otello")]),
+ "tp": ("hotel", "🟢 Т-ПУТЕШЕСТВИЯ", []),
+ "tv": ("hotel", "🧳 TRAVELATA", []),
+ "lv": ("hotel", "🧳 LEVEL.TRAVEL", []),
+ "tu": ("hotel", "🧳 ТУТУ.РУ", []),
+ "pb": ("avia", "🟢 ПОБЕДА", []),
+ "ut": ("avia", "🔵 UTAIR", []),
+ "fz": ("avia", "🟠 FLYDUBAI", []),
+ "af": ("avia", "🔵 АЭРОФЛОТ", []),
+ "s7": ("avia", "🟢 S7", []),
+ "ur": ("avia", "🔴 УРАЛЬСКИЕ АВИАЛИНИИ", []),
+ "pg": ("avia", "🟡 PEGASUS", []),
+ "oz": ("market", "🟣 OZON", []),
+ "wb": ("market", "🟣 WILDBERRIES", []),
+ "ym": ("market", "🟡 ЯНДЕКС МАРКЕТ", []),
+ "mm": ("market", "🟢 МЕГАМАРКЕТ", []),
+ "ali": ("market", "🟠 ALIEXPRESS", []),
 }
 
 CODE = r"[A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,}"
@@ -45,6 +45,7 @@ CUT = re.compile(r"(истекшие купоны|завершенные про�
 
 state = None
 offset = 0
+log_msg_id = None
 
 def clean(s): return re.sub(r"\s+", " ", s).strip()
 def num(s): return int(re.sub(r"\s", "", s))
@@ -323,11 +324,21 @@ def worker():
         time.sleep(iv)
 
 def admin_refresh_log(chat):
+    global log_msg_id
     now = time.time()
     lines = [f"🔄 ЛОГ ОБНОВЛЕНИЯ · {msk_str(now)} МСК", ""]
     total_codes = 0; total_src = 0; ok = 0; err = 0; empty = 0
+    
+    # Отправляем начальное сообщение
+    header = f"🔄 ЛОГ ОБНОВЛЕНИЯ · {msk_str(now)} МСК\n\nЗапуск проверки..."
+    resp = tg("sendMessage", chat_id=chat, text=header, parse_mode="HTML")
+    if resp and resp.get("result", {}).get("message_id"):
+        log_msg_id = resp["result"]["message_id"]
+    
+    time.sleep(0.5)
+    
     for cat in CATS:
-        lines.append(CATS[cat] + ":")
+        cat_lines = [f"\n{CATS[cat]}:"]
         for b, name, url in all_sources():
             if b not in BRANDS or BRANDS[b][0] != cat: continue
             total_src += 1
@@ -335,21 +346,34 @@ def admin_refresh_log(chat):
             n = len(rec.get("codes", {}))
             total_codes += n
             if url in state.get("sources_off", []):
-                lines.append(f"⏸ {name} ({b}) — выключен")
+                cat_lines.append(f"⏸ {name} ({b}) — выключен")
             elif rec.get("backoff", 0) > now:
                 err += 1
-                lines.append(f"⚠️ {name} ({b}) — {rec.get('err', '')} до {msk_str(rec['backoff'], '%H:%M')}")
+                cat_lines.append(f"⚠️ {name} ({b}) — {rec.get('err', '')} до {msk_str(rec['backoff'], '%H:%M')}")
             elif rec.get("ok_ts"):
                 ago = int((now - rec["ok_ts"]) / 60)
-                if n: ok += 1; lines.append(f"✅ {name} ({b}) — {n} кодов, {ago}м назад")
-                else: empty += 1; lines.append(f"🈳 {name} ({b}) — 0 кодов, {ago}м назад")
+                if n: ok += 1; cat_lines.append(f"✅ {name} ({b}) — {n} кодов, {ago}м назад")
+                else: empty += 1; cat_lines.append(f"🈳 {name} ({b}) — 0 кодов, {ago}м назад")
             else:
-                empty += 1; lines.append(f"⏳ {name} ({b}) — не проверялся")
+                empty += 1; cat_lines.append(f"⏳ {name} ({b}) — не проверялся")
+        
+        # Отправляем по разделу
+        cat_text = "\n".join(cat_lines)
+        if log_msg_id:
+            tg("editMessageText", chat_id=chat, message_id=log_msg_id, text=header + "\n".join(lines) + cat_text, parse_mode="HTML")
+        lines.extend(cat_lines)
         lines.append("")
+        time.sleep(0.3)
+    
+    # Финальная статистика
     lines.append(f"📊 ИТОГО: {total_codes} кодов из {total_src} источников")
     lines.append(f"✅ живых: {ok} · 🈳 пустых: {empty} · ⚠️ ошибок: {err}")
     lines.append(f"⏱ Интервал: {state['settings']['interval']} мин · Тихие: {'вкл' if state['settings']['quiet'] else 'выкл'}")
-    send(chat, "\n".join(lines))
+    
+    if log_msg_id:
+        tg("editMessageText", chat_id=chat, message_id=log_msg_id, text=header + "\n".join(lines), parse_mode="HTML")
+    else:
+        send(chat, header + "\n".join(lines))
 
 def handle_message(u):
     global offset
