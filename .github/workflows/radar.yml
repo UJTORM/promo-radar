@@ -1,4 +1,4 @@
-name: Promo Radar
+name: Scraper
 on:
   schedule:
     - cron: "*/5 * * * *"
@@ -6,29 +6,19 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: radar
+  group: scraper
   cancel-in-progress: true
 jobs:
-  radar:
+  scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - run: pip install requests beautifulsoup4
-      - name: Git identity
-        run: |
-          git config user.name "radar-bot"
+      - run: |
+          git config user.name "scraper-bot"
           git config user.email "bot@users.noreply.github.com"
-      - run: python radar.py
-        env:
-          TG_TOKEN: ${{ secrets.TG_TOKEN }}
-      - name: Save state
-        if: always()
-        run: |
-          git add state.json || true
-          git commit -m "state" || true
-          git pull --rebase || true
-          git push || true
+      - run: python scraper.py
