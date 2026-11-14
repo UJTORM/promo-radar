@@ -13,8 +13,8 @@ body[data-tab=hotel]{--acc:var(--teal);--acc2:var(--cyan)}
 body[data-tab=avia]{--acc:var(--blue);--acc2:var(--cyan)}
 body[data-tab=market]{--acc:var(--mag);--acc2:var(--gold)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,sans-serif;padding-bottom:80px;transition:background .3s,color .3s}
-header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:12px 14px;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,sans-serif;padding-bottom:80px}
+header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--line)}
 .logo{width:40px;height:40px;border-radius:50%;background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));animation:spin 4s linear infinite;position:relative}
 .logo::after{content:"";position:absolute;top:8px;left:8px;right:8px;bottom:8px;border-radius:50%;background:var(--bg)}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -22,7 +22,7 @@ header{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px
 .htxt small{color:var(--mut);font-size:11px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--grn);display:inline-block;margin-right:4px}
 .ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--sf);color:var(--ink);font-size:16px;display:grid;place-items:center;cursor:pointer}
-.tabs{position:sticky;top:64px;z-index:39;display:flex;gap:6px;padding:8px 12px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);overflow-x:auto;border-bottom:1px solid var(--line)}
+.tabs{position:sticky;top:64px;z-index:39;display:flex;gap:6px;padding:8px 12px;background:var(--bg);overflow-x:auto;border-bottom:1px solid var(--line)}
 .tab{flex:none;border:1px solid var(--line);background:var(--sf);color:var(--mut);border-radius:999px;padding:8px 14px;font:700 13px Manrope;cursor:pointer}
 .tab.on{color:var(--bg);background:linear-gradient(120deg,var(--acc),var(--acc2));border-color:transparent}
 .toolbar{padding:10px 12px;display:grid;gap:8px}
@@ -36,7 +36,7 @@ select{background:var(--sf);border:1px solid var(--line);color:var(--ink);border
 .stats{padding:4px 16px 8px;color:var(--mut);font:600 12px Manrope;display:flex;gap:10px}
 .stats b{color:var(--acc)}
 main{padding:0 12px;display:grid;gap:16px}
-.brandhead{position:sticky;top:170px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 20%,var(--bg)),var(--bg));border-left:4px solid var(--acc);border-radius:0 12px 12px 0;margin:8px 0}
+.brandhead{position:sticky;top:130px;z-index:10;display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 20%,var(--bg)),var(--bg));border-left:4px solid var(--acc);border-radius:0 12px 12px 0;margin:8px 0}
 .brandhead .emoji{font-size:20px}
 .brandhead b{font:800 14px Unbounded;flex:1}
 .brandhead small{color:var(--mut);font:600 11px Manrope}
@@ -62,7 +62,7 @@ main{padding:0 12px;display:grid;gap:16px}
 .pill.warn{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 40%,transparent)}
 .pill.danger{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}
 .empty{text-align:center;padding:40px 20px;color:var(--mut)}
-nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;padding:8px 8px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(16px);border-top:1px solid var(--line)}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:45;display:flex;gap:4px;padding:8px 8px;background:var(--bg);border-top:1px solid var(--line)}
 .nbtn{flex:1;display:grid;justify-items:center;gap:2px;background:none;border:0;color:var(--mut);font:700 10px Manrope;cursor:pointer;padding:6px 0;border-radius:10px}
 .nbtn b{font-size:18px;font-weight:400}
 .nbtn.on{color:var(--acc)}
@@ -161,19 +161,22 @@ function parseOffer(c){
  if(!c)return{pct:null,amt:null,mn:null,cap:null,exp:null,tags:[]};
  const g=re=>{const m=c.match(re);return m?m[1].replace(/\s/g,""):null};
  
- // Ищем процент скидки: "скидка 11%" или "11% скидка"
+ // Процент: "скидка 11%" или "11% скидка"
  let pct=g(/скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%/i)||g(/(\d{1,2})\s*%\s*скидк/i);
  
- // Ищем сумму: "скидка 2500р" или "2500 рублей" или "2 500 ₽"
- let amt=g(/скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i)||g(/(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)\s*скидк/i);
+ // Сумма скидки: "скидка 2500р", "2500 рублей", "2 500 ₽", "10000 рублей"
+ let amt=g(/скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i)||
+         g(/(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)\s*скидк/i)||
+         g(/(\d[\d\s]{4,})\s*(?:рубл|руб|₽)/i);
  
- // Ищем "от": "от 25000" или "от 25 000 ₽"
+ // "от": "от 25000" или "от 100 000 ₽"
  let mn=g(/от\s*(\d[\d\s]{3,})\s*(?:₽|руб|р\.?|rub)?/i)||g(/от\s*(\d{4,})\b/i);
  
- // Ищем "не более": "не более 1000р"
- let cap=g(/не более\s*(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i)||g(/макс\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i);
+ // "не более" или "макс": "не более 1000р"
+ let cap=g(/не более\s*(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i)||
+         g(/макс\w*\s*(?:\.\s*)?(\d[\d\s]{2,})\s*(?:₽|руб|р\.?|rub)?/i);
  
- // Ищем дату: "до 30.11.26" или "до 30.11.2026" или "до 30.11"
+ // Дата: "до 30.11.26" или "до 30.11.2026" или "до 30.11"
  let exp=null;
  const dateMatch=c.match(/до\s*(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?/i);
  if(dateMatch){
@@ -181,7 +184,7 @@ function parseOffer(c){
    const mo=dateMatch[2].padStart(2,'0');
    let y=dateMatch[3];
    if(!y||y.length<4){
-     y=y? (+y<100?2000+ +y:+y) : new Date().getFullYear();
+     y=y?(+y<100?2000+ +y:+y):new Date().getFullYear();
    }
    exp=`${d}.${mo}.${y}`;
  }
@@ -396,7 +399,6 @@ if(tg){try{tg.ready();tg.expand();tg.setHeaderColor("#0a0f1e");tg.setBackgroundC
   tg.BackButton?.onClick(closeSheet);
   tg.MainButton?.onClick(syncNow)}catch(e){}}
 
-// Форсируем темную тему по дефолту
 const savedTheme=LS.get("pr_theme","dark");
 document.documentElement.dataset.theme=savedTheme;
 $("#themeBtn").textContent=savedTheme==="dark"?"🌙":"☀️";
