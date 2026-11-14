@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Промокод-радар v10: без deadlock, быстрые ответы."""
+"""Промокод-радар v11: обновить=только админ с логом, чистый парсинг."""
 import html, json, os, random, re, subprocess, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
@@ -56,7 +56,7 @@ def load_state():
     global state, offset
     st = {"subs": {}, "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
           "last_poll": 0, "sources_off": [], "sources_custom": [],
-          "admin": 0,
+          "admin": 0, "cool": {}, "await_ann": False, "await_src": False,
           "settings": {"interval": 5, "quiet": False, "broadcast": True,
                        "budgets": {"hotel": 60000, "avia": 15000, "market": 5000}}}
     if os.path.exists(STATE_FILE):
@@ -93,16 +93,17 @@ def flags(chat):
 
 def menu_for(chat):
     f = flags(chat)
+    is_adm = chat == admin_id()
     rows = [
         [{"text": "🏨 Отели", "callback_data": "cat_hotel"}, {"text": "✈️ Авиабилеты", "callback_data": "cat_avia"}],
         [{"text": "🛍 Маркетплейсы", "callback_data": "cat_market"}, {"text": "🕘 Старые", "callback_data": "old"}],
         [{"text": f"🔔 Отели: {'вкл' if f['hotel'] else 'выкл'}", "callback_data": "sub_hotel"},
          {"text": f"🔔 Авиа: {'вкл' if f['avia'] else 'выкл'}", "callback_data": "sub_avia"}],
-        [{"text": f"🔔 Маркет: {'вкл' if f['market'] else 'выкл'}", "callback_data": "sub_market"},
-         {"text": "🔄 Обновить", "callback_data": "refresh"}],
+        [{"text": f"🔔 Маркет: {'вкл' if f['market'] else 'выкл'}", "callback_data": "sub_market"}],
         [{"text": "📱 Мини-апп", "callback_data": "app"}],
     ]
-    if chat == admin_id(): rows.append([{"text": "⚙️ Админ панель", "callback_data": "admin"}])
+    if is_adm:
+        rows.append([{"text": "🔄 Обновить (лог)", "callback_data": "refresh"}, {"text": "⚙️ Админ", "callback_data": "admin"}])
     return {"inline_keyboard": rows}
 
 def send(chat, text):
@@ -121,6 +122,7 @@ def app_keyboard():
             "resize_keyboard": True, "is_persistent": True}
 
 def parse_offer(c):
+    if not c: return None, None, None, None, None, []
     pct = amt = mn = cap = exp = None
     m = re.search(r"скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%", c, re.I)
     if m: pct = int(m.group(1))
@@ -159,13 +161,15 @@ def sig(v):
     return (p, a, mn, cap, exp, tuple(tags))
 
 def clean_ctx(code, ctx):
+    if not ctx: return ""
     ctx = re.sub(r"\b" + re.escape(code) + r"\b\s*[—–:→]?\s*", "", ctx, flags=re.I)
     ctx = re.sub(r"промокод\s*[:→]?\s*" + re.escape(code), "", ctx, flags=re.I)
     ctx = re.sub(r"\b" + re.escape(code) + r"\b", "", ctx)
     return re.sub(r"\s+", " ", ctx).strip()
 
 def block(code, v, mark=None, budget=None, aliases=()):
-    ctx = clean_ctx(code, v.get("ctx", ""))
+    raw = v.get("ctx", "")
+    ctx = clean_ctx(code, raw)
     p, a, mn, cap, exp, tags = parse_offer(ctx)
     if a: line = f"{fmt(a)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
     elif p: line = f"{p}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
@@ -318,6 +322,35 @@ def worker():
         iv = state["settings"]["interval"] * 60
         time.sleep(iv)
 
+def admin_refresh_log(chat):
+    now = time.time()
+    lines = [f"🔄 ЛОГ ОБНОВЛЕНИЯ · {msk_str(now)} МСК", ""]
+    total_codes = 0; total_src = 0; ok = 0; err = 0; empty = 0
+    for cat in CATS:
+        lines.append(CATS[cat] + ":")
+        for b, name, url in all_sources():
+            if b not in BRANDS or BRANDS[b][0] != cat: continue
+            total_src += 1
+            rec = state["http"].get(url, {})
+            n = len(rec.get("codes", {}))
+            total_codes += n
+            if url in state.get("sources_off", []):
+                lines.append(f"⏸ {name} ({b}) — выключен")
+            elif rec.get("backoff", 0) > now:
+                err += 1
+                lines.append(f"⚠️ {name} ({b}) — {rec.get('err', '')} до {msk_str(rec['backoff'], '%H:%M')}")
+            elif rec.get("ok_ts"):
+                ago = int((now - rec["ok_ts"]) / 60)
+                if n: ok += 1; lines.append(f"✅ {name} ({b}) — {n} кодов, {ago}м назад")
+                else: empty += 1; lines.append(f"🈳 {name} ({b}) — 0 кодов, {ago}м назад")
+            else:
+                empty += 1; lines.append(f"⏳ {name} ({b}) — не проверялся")
+        lines.append("")
+    lines.append(f"📊 ИТОГО: {total_codes} кодов из {total_src} источников")
+    lines.append(f"✅ живых: {ok} · 🈳 пустых: {empty} · ⚠️ ошибок: {err}")
+    lines.append(f"⏱ Интервал: {state['settings']['interval']} мин · Тихие: {'вкл' if state['settings']['quiet'] else 'выкл'}")
+    send(chat, "\n".join(lines))
+
 def handle_message(u):
     global offset
     if "message" in u and "web_app_data" in u.get("message", {}):
@@ -360,7 +393,7 @@ def handle_message(u):
     else: return
     uid = str(chat); low = data.lower()
     admin_cmd = data in ("admin", "adm_int", "adm_quiet", "adm_bc", "adm_status", "adm_src", "adm_subs",
-                         "adm_ann", "adm_add", "adm_back", "/admin", "/status") or data.startswith(("src_", "del_", "adm_bud_"))
+                         "adm_ann", "adm_add", "adm_back", "refresh", "/admin", "/status", "/refresh") or data.startswith(("src_", "del_", "adm_bud_"))
     if admin_cmd and chat != admin_id(): send(chat, "⛔ Только для админа."); return
     if chat == admin_id() and state.get("await_ann") and "message" in u:
         state["await_ann"] = False
@@ -383,7 +416,7 @@ def handle_message(u):
         send(chat, "👋 Привет! Радар промокодов: 🏨 отели, ✈️ авиабилеты, 🛍 маркетплейсы.\n"
                    "Жми раздел — все коды, выгодные первыми. Кнопки 🔔 — уведомления по разделам.\n"
                    "Команды: /hotel /avia /market /old /stop /whoami /app"
-                   + ("\n⚙️ У тебя кнопка «Админ панель»." if chat == admin_id() else ""))
+                   + ("\n⚙️ У тебя кнопка «Админ» и «🔄 Обновить»." if chat == admin_id() else ""))
         tg("sendMessage", chat_id=chat, text="📱 Открой радар как мини-апп:", reply_markup=app_keyboard())
         return
     if low == "/app":
@@ -395,18 +428,15 @@ def handle_message(u):
         send(chat, "🔕 Все уведомления отключены."); return
     if low == "/help":
         send(chat, "🏨 /hotel · ✈️ /avia · 🛍 /market\n🕘 /old · 🔕 /stop · 📱 /app\nКнопки 🔔 — уведомления по разделам"); return
-    if low == "refresh":
-        now = time.time()
-        if now - state["cool"].get(uid, 0) < 20: send(chat, "⏳ Подожди 20 секунд."); return
-        state["cool"][uid] = now
-        send(chat, "🔄 Запустил обновление в фоне — свежие данные через ~минуту."); return
+    if low in ("refresh", "/refresh"):
+        admin_refresh_log(chat); return
     if low in ("cat_hotel", "/hotel"):
         entries = []
         for b, (c0, title, srcs) in BRANDS.items():
-            if c0 != cat: continue
+            if c0 != "hotel": continue
             for c, v in state["cache"].get(b, {}).get("codes", {}).items(): entries.append((b, c, v))
         if not entries:
-            send(chat, CATS["hotel"] + "\n\n⏳ Данные собираются в фоне (~1 мин). Нажми 🔄 или загляни чуть позже."); return
+            send(chat, CATS["hotel"] + "\n\n⏳ Данные собираются в фоне (~1 мин)."); return
         msg = f"{CATS['hotel']} · {len(entries)} кодов\n\n" + render_category("hotel", entries)
         msg += "\n\n👆 Нажми на код — он скопируется."
         send(chat, msg); return
