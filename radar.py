@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Промокод-радар v14 — финал."""
+"""Промокод-радар v15: строгий парсер, OVERRIDES, рассылка новых кодов, живой лог."""
 import html, json, os, re, subprocess, threading, time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
@@ -15,19 +15,24 @@ MINIAPP_URL = "https://ujtorm.github.io/promo-radar/"
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 CATS = {"hotel": "🏨 ОТЕЛИ", "avia": "✈️ АВИАБИЛЕТЫ", "market": "🛍 МАРКЕТПЛЕЙСЫ"}
 
-# Только рабочие источники. Пустые разделы заполняются демо-данными.
+# Только источники, которые реально отвечали 200 и давали коды.
 BRANDS = {
  "ya": ("hotel", "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel")]),
  "os": ("hotel", "🔵 ОСТРОВОК", [("Блог", "https://blog.ostrovok.ru/promokody-ostrovka/"), ("Лисёнок", "https://lisenok-travel.ru/tpost/ostrovok-promokody-na-skidku")]),
  "ozt": ("hotel", "🟣 OZON TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel")]),
  "ot": ("hotel", "🟠 ОТЕЛЛО", [("Lovikod", "https://lovikod.ru/travel/promokody-otello")]),
- "tp": ("hotel", "🟢 Т-ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-t-puteshestviya")]),
  "pb": ("avia", "🟢 ПОБЕДА", []),
  "af": ("avia", "🔵 АЭРОФЛОТ", []),
  "s7": ("avia", "🟢 S7", []),
  "oz": ("market", "🟣 OZON", []),
  "wb": ("market", "🟣 WILDBERRIES", []),
  "ym": ("market", "🟡 ЯНДЕКС МАРКЕТ", []),
+}
+
+# Ручные исправления: когда источник врёт или парсер не может разобрать.
+OVERRIDES = {
+ "DI-ALL-2O27": {"amt": 1000, "mn": 25000},
+ "DI-ALL-2027": {"amt": 1000, "mn": 25000},
 }
 
 CODE_RE = re.compile(r"\b[A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,}\b")
@@ -44,12 +49,104 @@ def fmt(n): return f"{n:,}".replace(",", " ")
 def msk(t=None): return time.gmtime((t or time.time()) + 3 * 3600)
 def msk_str(t, f="%d.%m %H:%M"): return time.strftime(f, msk(t))
 
+def parse_offer(c):
+    """Строгий парсер: первое число после 'скидка'; если после числа '%' — это процент."""
+    if not c: return None, None, None, None, None, []
+    pct = amt = mn = cap = exp = None
+    m = re.search(r"(\d{1,2})\s*%", c)
+    if m and re.search(r"скидк", c, re.I): pct = int(m.group(1))
+    m = re.search(r"скидк[аи]\s*(?!\d+\s*%)(\d{1,3}(?:\s\d{3})*|\d+)", c, re.I)
+    if m: amt = num(m.group(1))
+    m = re.search(r"от\s*(\d{1,3}(?:\s\d{3})*|\d{4,})", c, re.I)
+    if m: mn = num(m.group(1))
+    m = re.search(r"(?:не более|макс\w*)\s*\.?\s*(\d{1,3}(?:\s\d{3})*|\d+)", c, re.I)
+    if m: cap = num(m.group(1))
+    m = re.search(r"до\s*(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?", c, re.I)
+    if m:
+        y = m.group(3)
+        y = int(y) if y and len(y) == 4 else (2000 + int(y) if y else msk().tm_year)
+        exp = f"{int(m.group(1)):02d}.{int(m.group(2)):02d}.{y}"
+    tags = []
+    if re.search(r"приложени", c, re.I): tags.append("только в приложении")
+    if re.search(r"перв\w+\s*(заказ|бронирован)", c, re.I): tags.append("первое бронирование")
+    if re.search(r"подборк|из подборк", c, re.I): tags.append("из подборки")
+    if re.search(r"2027", c): tags.append("проживание в 2027")
+    if re.search(r"в РФ|по России", c, re.I): tags.append("только РФ")
+    return pct, amt, mn, cap, exp, tags
+
+def offer_for(code, ctx):
+    """Парсит контекст и применяет ручные OVERRIDES."""
+    pct, amt, mn, cap, exp, tags = parse_offer(ctx)
+    ov = OVERRIDES.get(code) or OVERRIDES.get(code.upper())
+    if ov:
+        pct = ov.get("pct", pct); amt = ov.get("amt", amt)
+        mn = ov.get("mn", mn); cap = ov.get("cap", cap)
+    return pct, amt, mn, cap, exp, tags
+
+def value(v, budget):
+    code = v.get("code", "")
+    p, a, mn, cap, exp, tags = offer_for(code, v.get("ctx", ""))
+    if mn and budget < mn: return 0
+    if a: return a
+    if p:
+        val = budget * p / 100
+        if cap: val = min(val, cap)
+        return int(val)
+    return 0
+
+def sig(v):
+    p, a, mn, cap, exp, tags = offer_for(v.get("code", ""), v.get("ctx", ""))
+    return (p, a, mn, cap, exp, tuple(tags))
+
+def block(code, v, mark=None, budget=None, aliases=()):
+    p, a, mn, cap, exp, tags = offer_for(code, v.get("ctx", ""))
+    if a: line = f"{fmt(a)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
+    elif p: line = f"{p}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
+    else: line = "⚠️ не удалось распознать скидку (см. условия)"
+    out = []
+    if mark: out.append(mark)
+    out.append(f"<code>{html.escape(code)}</code>")
+    out.append(line)
+    if p and budget: out.append(f"≈ выгода {fmt(value(dict(v, code=code), budget))} ₽ при сумме {fmt(budget)} ₽")
+    out.append(f"Действует до {exp}" if exp else "Срок не указан")
+    if tags: out.append("⚠️ " + " · ".join(tags[:2]))
+    if aliases: out.append("🔁 ещё: " + " ".join(f"<code>{html.escape(x)}</code>" for x in aliases[:3]))
+    return "\n".join(out)
+
+def render_category(cat, entries):
+    budget = state["settings"]["budgets"][cat]
+    scored = [(b, c, v, value(dict(v, code=c), budget)) for b, c, v in entries]
+    ranked = sorted(scored, key=lambda x: -x[3])
+    marks = {}
+    for i, (b, c, v, s) in enumerate(ranked[:3]):
+        if s > 0: marks[b + ":" + c] = "💰 САМЫЙ ВЫГОДНЫЙ" if i == 0 else "🔥 ВЫГОДНЫЙ"
+    by_brand = {}
+    for b, c, v, s in scored: by_brand.setdefault(b, []).append((c, v, s))
+    brand_best = {b: max(x[2] for x in rows) for b, rows in by_brand.items()}
+    parts = []
+    for b in sorted(by_brand, key=lambda x: -brand_best[x]):
+        groups = {}
+        for c, v, s in sorted(by_brand[b], key=lambda x: -x[2]): groups.setdefault(sig(dict(v, code=c)), []).append((c, v, s))
+        blocks = []
+        for g in groups.values():
+            c, v, s = g[0]
+            blocks.append(block(c, v, marks.get(b + ":" + c), budget, [x[0] for x in g[1:]]))
+        parts.append(BRANDS[b][1] + "\n\n" + "\n\n".join(blocks))
+    return "\n\n".join(parts)
+
+def all_sources():
+    out = []
+    for b, (cat, title, srcs) in BRANDS.items():
+        for name, url in srcs: out.append((b, name, url))
+    for s in state.get("sources_custom", []): out.append((s["brand"], s["name"], s["url"]))
+    return out
+
 def load_state():
     global state, offset
     st = {"subs": {}, "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
           "last_poll": 0, "sources_off": [], "sources_custom": [],
           "admin": 0, "cool": {}, "await_ann": False, "await_src": False,
-          "demo_loaded": False,
+          "first_run_done": False,
           "settings": {"interval": 5, "quiet": False, "broadcast": True,
                        "budgets": {"hotel": 60000, "avia": 15000, "market": 5000}}}
     if os.path.exists(STATE_FILE):
@@ -60,26 +157,23 @@ def load_state():
         st["subs"] = {c: {"hotel": True, "avia": True, "market": False} for c in st["subs"]}
     offset = st.get("offset", 0)
     state = st
-    if not st.get("demo_loaded"):
-        load_demo()
-        st["demo_loaded"] = True
+    load_demo()
     return st
 
 def load_demo():
-    """Заполняет пустые разделы демо-данными."""
     demo = {
         "pb:POBEDA500": {"ctx": "Скидка 500 ₽ от 5 000 ₽. Действует до 18.12.2026", "brand": "pb", "src": "demo"},
         "af:AFL1500": {"ctx": "Скидка 1 500 ₽ от 15 000 ₽. Действует до 20.12.2026", "brand": "af", "src": "demo"},
         "s7:S7WINTER": {"ctx": "Скидка 10% на билеты. Действует до 31.12.2026", "brand": "s7", "src": "demo"},
         "oz:OZON500": {"ctx": "Скидка 500 ₽ от 3 000 ₽. Действует до 16.11.2026", "brand": "oz", "src": "demo"},
         "wb:WB300": {"ctx": "Скидка 300 ₽ от 2 000 ₽. Действует до 30.11.2026", "brand": "wb", "src": "demo"},
-        "ym:MARKET10": {"ctx": "Скидка 10% (макс. 1 000 ₽). Действует до 31.12.2026", "brand": "ym", "src": "demo"},
+        "ym:MARKET10": {"ctx": "Скидка 10% (не более 1 000 ₽). Действует до 31.12.2026", "brand": "ym", "src": "demo"},
     }
     for k, v in demo.items():
         if k not in state["seen"]:
             state["seen"][k] = v
-            state["cache"].setdefault(v["brand"], {"ts": time.time(), "codes": {}})
             code = k.split(":", 1)[1]
+            state["cache"].setdefault(v["brand"], {"ts": time.time(), "codes": {}})
             state["cache"][v["brand"]]["codes"][code] = v
 
 def save_state():
@@ -136,89 +230,6 @@ def send(chat, text):
 def app_keyboard():
     return {"keyboard": [[{"text": "📱 Открыть радар", "web_app": {"url": MINIAPP_URL}}]],
             "resize_keyboard": True, "is_persistent": True}
-
-def parse_offer(c):
-    if not c: return None, None, None, None, None, []
-    pct = amt = mn = cap = exp = None
-    m = re.search(r"скидк\w*\s*(?:до\s*)?(\d{1,2})\s*%", c, re.I)
-    if m: pct = int(m.group(1))
-    m = re.search(r"скидк\w*\s*(\d[\d\s]{2,})\s*(?:₽|руб)", c, re.I)
-    if m: amt = num(m.group(1))
-    m = re.search(r"от\s*(\d[\d\s]{3,})\s*(?:₽|руб)", c, re.I) or re.search(r"от\s*(\d{4,})\b", c)
-    if m:
-        v = num(m.group(1))
-        if v >= 500: mn = v
-    m = re.search(r"не более\s*(\d[\d\s]{2,})\s*(?:₽|руб)", c, re.I)
-    if m: cap = num(m.group(1))
-    m = re.search(r"до\s*(\d{2})\.(\d{2})\.(\d{2,4})", c)
-    if m:
-        y = int(m.group(3)); y += 2000 if y < 100 else 0
-        exp = f"{m.group(1)}.{m.group(2)}.{y}"
-    tags = []
-    if re.search(r"приложени", c, re.I): tags.append("только в приложении")
-    if re.search(r"перв\w+\s*(заказ|бронирован|оплат)|новых пользователей", c, re.I): tags.append("первое бронирование")
-    if re.search(r"подборк|со страницы|premium", c, re.I): tags.append("из подборки")
-    if re.search(r"2027", c, re.I): tags.append("проживание в 2027")
-    if re.search(r"санатор|в РФ|по России", c, re.I): tags.append("только РФ")
-    return pct, amt, mn, cap, exp, tags
-
-def value(v, budget):
-    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
-    if mn and budget < mn: return 0
-    if a: return a
-    if p:
-        val = budget * p / 100
-        if cap: val = min(val, cap)
-        return int(val)
-    return 0
-
-def sig(v):
-    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
-    return (p, a, mn, cap, exp, tuple(tags))
-
-def block(code, v, mark=None, budget=None, aliases=()):
-    raw = v.get("ctx", "")
-    p, a, mn, cap, exp, tags = parse_offer(raw)
-    if a: line = f"{fmt(a)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
-    elif p: line = f"{p}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
-    else: line = "скидка по условиям акции"
-    out = []
-    if mark: out.append(mark)
-    out.append(f"<code>{html.escape(code)}</code>")
-    out.append(line)
-    if p and budget: out.append(f"≈ выгода {fmt(value(v, budget))} ₽ при сумме {fmt(budget)} ₽")
-    out.append(f"Действует до {exp}" if exp else "Срок не указан")
-    if tags: out.append("⚠️ " + " · ".join(tags[:2]))
-    if aliases: out.append("🔁 ещё: " + " ".join(f"<code>{html.escape(x)}</code>" for x in aliases[:3]))
-    return "\n".join(out)
-
-def render_category(cat, entries):
-    budget = state["settings"]["budgets"][cat]
-    scored = [(b, c, v, value(v, budget)) for b, c, v in entries]
-    ranked = sorted(scored, key=lambda x: -x[3])
-    marks = {}
-    for i, (b, c, v, s) in enumerate(ranked[:3]):
-        if s > 0: marks[b + ":" + c] = "💰 САМЫЙ ВЫГОДНЫЙ" if i == 0 else "🔥 ВЫГОДНЫЙ"
-    by_brand = {}
-    for b, c, v, s in scored: by_brand.setdefault(b, []).append((c, v, s))
-    brand_best = {b: max(x[2] for x in rows) for b, rows in by_brand.items()}
-    parts = []
-    for b in sorted(by_brand, key=lambda x: -brand_best[x]):
-        groups = {}
-        for c, v, s in sorted(by_brand[b], key=lambda x: -x[2]): groups.setdefault(sig(v), []).append((c, v, s))
-        blocks = []
-        for g in groups.values():
-            c, v, s = g[0]
-            blocks.append(block(c, v, marks.get(b + ":" + c), budget, [x[0] for x in g[1:]]))
-        parts.append(BRANDS[b][1] + "\n\n" + "\n\n".join(blocks))
-    return "\n\n".join(parts)
-
-def all_sources():
-    out = []
-    for b, (cat, title, srcs) in BRANDS.items():
-        for name, url in srcs: out.append((b, name, url))
-    for s in state.get("sources_custom", []): out.append((s["brand"], s["name"], s["url"]))
-    return out
 
 def extract_soup(t):
     soup = BeautifulSoup(t, "html.parser")
@@ -287,18 +298,22 @@ def cycle():
         codes = per_brand.get(b, {})
         state["cache"][b] = {"ts": now, "codes": codes}
         for c, v in codes.items(): found[b + ":" + c] = dict(v, brand=b)
-    if not found: return
     today = time.strftime("%d.%m.%Y", msk())
     seen = state["seen"]; notified = state.setdefault("notified", {})
     for k, v in found.items():
-        if k not in seen and now - notified.get(k, 0) > 24 * 3600:
+        is_new = k not in seen
+        if is_new and now - notified.get(k, 0) > 24 * 3600:
+            state["digest"][k] = v; notified[k] = now
+        elif is_new and not state.get("first_run_done"):
             state["digest"][k] = v; notified[k] = now
         seen[k] = dict(v, miss=0)
     for k in list(seen):
         if k not in found:
+            if seen[k].get("src") == "demo": continue  # демо не удаляем
             seen[k]["miss"] = seen[k].get("miss", 0) + 1
             if seen[k]["miss"] >= 3:
                 state["old"][k] = dict(seen[k], gone=today); del seen[k]
+    state["first_run_done"] = True
     state["last_poll"] = now
     if state["digest"] and state["subs"] and state["settings"]["broadcast"]:
         s = state["settings"]
@@ -309,10 +324,10 @@ def cycle():
                            if BRANDS.get(v.get("brand", ""), ("",))[0] == cat]
                 if not entries: continue
                 msg = f"🔔 НОВЫЕ КОДЫ · {CATS[cat]}\n\n" + render_category(cat, entries)
-                msg += "\n\n👆 Нажми на код — он скопируется."
+                msg += "\n\n👆 Тап по коду = копировать"
                 for chat, f in state["subs"].items():
                     if f.get(cat): send(chat, msg)
-            state["digest"] = {}
+        state["digest"] = {}
     save_state()
 
 def worker():
@@ -323,40 +338,29 @@ def worker():
 
 def admin_refresh_log(chat):
     now = time.time()
-    header = f"🔄 ЛОГ ОБНОВЛЕНИЯ · {msk_str(now)} МСК"
-    resp = tg("sendMessage", chat_id=chat, text=header + "\n\n⏳ Запуск...")
+    header = f"🔄 ЛОГ · {msk_str(now)} МСК"
+    resp = tg("sendMessage", chat_id=chat, text=header + "\n\n⏳ Проверка...")
     msg_id = resp.get("result", {}).get("message_id") if resp else None
-    
     lines = [""]
-    total_codes = 0; total_src = 0; ok = 0; err = 0; empty = 0
-    
+    ok = err = empty = 0
     for cat in CATS:
-        cat_lines = [f"\n{CATS[cat]}:"]
+        lines.append(CATS[cat] + ":")
         for b, name, url in all_sources():
             if b not in BRANDS or BRANDS[b][0] != cat: continue
-            total_src += 1
             rec = state["http"].get(url, {})
             n = len(rec.get("codes", {}))
-            total_codes += n
-            if url in state.get("sources_off", []):
-                cat_lines.append(f"⏸ {name} ({b}) — выключен")
+            if url in state.get("sources_off", []): lines.append(f"⏸ {name} ({b}) выключен")
             elif rec.get("backoff", 0) > now:
-                err += 1; cat_lines.append(f"⚠️ {name} ({b}) — {rec.get('err', '')}")
+                err += 1; lines.append(f"⚠️ {name} ({b}) {rec.get('err', '?')}")
             elif rec.get("ok_ts"):
-                ago = int((now - rec["ok_ts"]) / 60)
-                if n: ok += 1; cat_lines.append(f"✅ {name} ({b}) — {n} кодов")
-                else: empty += 1; cat_lines.append(f"🈳 {name} ({b}) — 0 кодов")
-            else:
-                empty += 1; cat_lines.append(f"⏳ {name} ({b})")
-        lines.extend(cat_lines)
-        if msg_id:
-            tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
+                if n: ok += 1; lines.append(f"✅ {name} ({b}) {n} кодов")
+                else: empty += 1; lines.append(f"🈳 {name} ({b}) 0 кодов")
+            else: empty += 1; lines.append(f"⏳ {name} ({b)} не проверялся")
+        if msg_id: tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
         time.sleep(0.3)
-    
-    lines.append(f"\n📊 ИТОГО: {total_codes} кодов из {total_src} источников")
-    lines.append(f"✅ {ok} · 🈳 {empty} · ⚠️ {err}")
-    if msg_id:
-        tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
+    lines.append(f"\n✅ {ok} · 🈳 {empty} · ⚠️ {err}")
+    if msg_id: tg("editMessageText", chat_id=chat, message_id=msg_id, text=header + "\n".join(lines))
+    else: send(chat, header + "\n".join(lines))
 
 def handle_message(u):
     global offset
@@ -369,7 +373,7 @@ def handle_message(u):
             t = op.get("t")
             if t == "sub" and op.get("cat") in CATS:
                 f = state["subs"].setdefault(chat, {"hotel": True, "avia": True, "market": False})
-                f[op["cat"]] = bool(op.get("v")); done.append("подписка " + op["cat"])
+                f[op["cat"]] = bool(op.get("v")); done.append("подписка")
             elif not is_adm: continue
             elif t == "set" and op.get("k") in ("interval", "quiet", "broadcast"):
                 state["settings"][op["k"]] = op.get("v"); done.append(op["k"])
@@ -421,6 +425,7 @@ def handle_message(u):
     if low == "/start":
         flags(chat)
         if not admin_id(): state["admin"] = chat
+        save_state()
         send(chat, "👋 Радар промокодов.\nЖми раздел — коды, выгодные первыми.\n🔔 — уведомления.\n/app — мини-апп."
              + ("\n⚙️ У тебя Админ и 🔄." if chat == admin_id() else ""))
         tg("sendMessage", chat_id=chat, text="📱 Мини-апп:", reply_markup=app_keyboard())
@@ -434,23 +439,21 @@ def handle_message(u):
         send(chat, "/hotel /avia /market /old /stop /app"); return
     if low in ("refresh", "/refresh"):
         admin_refresh_log(chat); return
-    if low in ("cat_hotel", "/hotel"):
-        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "hotel" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
-        if not entries: send(chat, "⏳ Сбор данных..."); return
-        send(chat, f"{CATS['hotel']} · {len(entries)}\n\n" + render_category("hotel", entries) + "\n\n👆 Тап по коду = копировать"); return
-    if low in ("cat_avia", "/avia"):
-        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "avia" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
-        if not entries: send(chat, "⏳ Сбор данных..."); return
-        send(chat, f"{CATS['avia']} · {len(entries)}\n\n" + render_category("avia", entries) + "\n\n👆 Тап по коду = копировать"); return
-    if low in ("cat_market", "/market"):
-        entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == "market" for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
-        if not entries: send(chat, "⏳ Сбор данных..."); return
-        send(chat, f"{CATS['market']} · {len(entries)}\n\n" + render_category("market", entries) + "\n\n👆 Тап по коду = копировать"); return
+    for key, cmd in (("hotel", "cat_hotel"), ("avia", "cat_avia"), ("market", "cat_market")):
+        if low in (cmd, "/" + key):
+            entries = [(b, c, v) for b, (c0, _, _) in BRANDS.items() if c0 == key
+                       for c, v in state["cache"].get(b, {}).get("codes", {}).items()]
+            if not entries:
+                send(chat, f"⚠️ {CATS[key]}: источников нет или они недоступны. Добавь через Админ → ➕ Источник.")
+                return
+            send(chat, f"{CATS[key]} · {len(entries)}\n\n" + render_category(key, entries) + "\n\n👆 Тап по коду = копировать")
+            return
     if low in ("old", "/old"):
         old = state.get("old", {})
         if not old: send(chat, "🕘 Пусто."); return
         items = sorted(old.items(), key=lambda kv: kv[1].get("gone", ""), reverse=True)[:20]
-        send(chat, "🕘 СТАРЫЕ\n\n" + "\n\n".join(block(k.split(":", 1)[1], v) + f"\n🕘 {v.get('gone', '?')}" for k, v in items)); return
+        send(chat, "🕘 СТАРЫЕ\n\n" + "\n\n".join(block(k.split(":", 1)[1], v) + f"\n🕘 {v.get('gone', '?')}" for k, v in items))
+        return
     if low.startswith("sub_"):
         cat = low[4:]; f = flags(chat); f[cat] = not f[cat]
         send(chat, f"🔔 {CATS[cat]}: {'✅' if f[cat] else '🔕'}"); return
@@ -473,7 +476,7 @@ def handle_message(u):
                 if b not in BRANDS or BRANDS[b][0] != cat: continue
                 rec = state["http"].get(url, {}); n = len(rec.get("codes", {}))
                 if url in state.get("sources_off", []): lines.append(f"⏸ {name}")
-                elif rec.get("backoff", 0) > now: lines.append(f"⚠️ {name} — {rec.get('err', '')}")
+                elif rec.get("backoff", 0) > now: lines.append(f"⚠️ {name} — {rec.get('err', '?')}")
                 elif rec.get("ok_ts"): lines.append(f"{'✅' if n else '🈳'} {name} — {n} кодов")
                 else: lines.append(f"⏳ {name}")
             lines.append("")
@@ -500,7 +503,7 @@ def handle_message(u):
         rows.append([{"text": "⬅️ Назад", "callback_data": "admin"}])
         tg("sendMessage", chat_id=chat, text="📡 Источники:", reply_markup={"inline_keyboard": rows}); return
     if low == "adm_subs":
-        send(chat, f"👥 {len(state['subs'])}\n" + "\n".join(map(str, state["subs"])) or "пусто"); return
+        send(chat, f"👥 {len(state['subs'])}\n" + ("\n".join(map(str, state["subs"])) or "пусто")); return
     if low == "adm_ann": state["await_ann"] = True; send(chat, "📣 Пришли текст."); return
     if low == "adm_add":
         state["await_src"] = True; send(chat, "➕ бренд ссылка\n" + " ".join(BRANDS.keys())); return
