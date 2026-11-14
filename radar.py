@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Промокод-радар: 5 агрегаторов, админ-панель (авто-назначение), чистый формат."""
+"""Промокод-радар v7: разделы Отели/Авиа/Маркетплейсы, рейтинг выгоды, полный вывод."""
 import html, json, os, random, re, subprocess, time
 import requests
 from bs4 import BeautifulSoup
@@ -9,39 +9,40 @@ ENV_ADMIN = int(os.environ.get("TG_ADMIN") or os.environ.get("TG_CHAT") or 0)
 API = "https://api.telegram.org/bot" + TG_TOKEN
 DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(DIR, "state.json")
-ST = None  # глобальное состояние (инициализируется в main)
-
+ST = None
 LOOP_SECONDS = 15 * 60
 COOLDOWN = 30
 BACKOFF = 30 * 60
 MISS_LIMIT = 3
 RENOTIFY = 24 * 3600
-
+CRAWL_TTL = 30 * 60
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
-SERVICES = {
-    "ya": "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ",
-    "os": "🔵 ОСТРОВОК",
-    "oz": "🟣 OZON TRAVEL",
-    "ot": "🟠 ОТЕЛЛО",
-    "tp": "🟢 Т-ПУТЕШЕСТВИЯ",
+CATS = {"hotel": "🏨 ОТЕЛИ", "avia": "✈️ АВИАБИЛЕТЫ", "market": "🛍 МАРКЕТПЛЕЙСЫ"}
+BRANDS = {
+ "ya": ("hotel", "🟡 ЯНДЕКС ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel", "page"), ("7days", "https://7days.ru/promokodi/yandex-travel", "page"), ("Яндекс Журнал", "https://travel.yandex.ru/journal/", "crawl"), ("TG", "https://t.me/s/yandex_travel", "tg")]),
+ "os": ("hotel", "🔵 ОСТРОВОК", [("Офиц. блог", "https://blog.ostrovok.ru/promokody-ostrovka/", "page"), ("Блог (офиц.)", "https://blog.ostrovok.ru/", "crawl"), ("Лисёнок", "https://lisenok-travel.ru/tpost/ostrovok-promokody-na-skidku", "page"), ("7days", "https://7days.ru/promokodi/ostrovok", "page"), ("TG", "https://t.me/s/ostrovok", "tg")]),
+ "ozt": ("hotel", "🟣 OZON TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel", "page"), ("7days", "https://7days.ru/promokodi/ozon-travel", "page"), ("TG", "https://t.me/s/ozon_travel", "tg")]),
+ "ot": ("hotel", "🟠 ОТЕЛЛО", [("Lovikod", "https://lovikod.ru/travel/promokody-otello", "page"), ("7days", "https://7days.ru/promokodi/otello", "page")]),
+ "tp": ("hotel", "🟢 Т-ПУТЕШЕСТВИЯ", [("Lovikod", "https://lovikod.ru/travel/promokody-t-puteshestviya", "page"), ("7days", "https://7days.ru/promokodi/t-puteshestviya", "page")]),
+ "tv": ("hotel", "🧳 TRAVELATA", [("Lovikod", "https://lovikod.ru/travel/promokody-travelata", "page"), ("7days", "https://7days.ru/promokodi/travelata", "page")]),
+ "lv": ("hotel", "🧳 LEVEL.TRAVEL", [("Lovikod", "https://lovikod.ru/travel/promokody-level-travel", "page"), ("7days", "https://7days.ru/promokodi/level-travel", "page")]),
+ "tu": ("hotel", "🧳 ТУТУ.РУ", [("Lovikod", "https://lovikod.ru/travel/promokody-tutu", "page"), ("7days", "https://7days.ru/promokodi/tutu", "page")]),
+ "pb": ("avia", "🟢 ПОБЕДА", [("7days", "https://7days.ru/promokodi/pobeda", "page"), ("Lovikod", "https://lovikod.ru/travel/promokody-pobeda", "page"), ("TG", "https://t.me/s/pobeda", "tg")]),
+ "ut": ("avia", "🔵 UTAIR", [("7days", "https://7days.ru/promokodi/utair", "page"), ("Lovikod", "https://lovikod.ru/travel/promokody-utair", "page"), ("TG", "https://t.me/s/utair", "tg")]),
+ "fz": ("avia", "🟠 FLYDUBAI", [("Офиц. сайт", "https://www.flydubai.com/en/", "page"), ("7days", "https://7days.ru/promokodi/flydubai", "page"), ("TG", "https://t.me/s/flydubai", "tg")]),
+ "af": ("avia", "🔵 АЭРОФЛОТ", [("Офиц. акции", "https://www.aeroflot.ru/ru-ru/special_offers", "page"), ("7days", "https://7days.ru/promokodi/aeroflot", "page"), ("Lovikod", "https://lovikod.ru/travel/promokody-aeroflot", "page"), ("TG", "https://t.me/s/aeroflot", "tg")]),
+ "s7": ("avia", "🟢 S7", [("Офиц. акции", "https://www.s7.ru/ru/offers/", "page"), ("7days", "https://7days.ru/promokodi/s7-airlines", "page"), ("Lovikod", "https://lovikod.ru/travel/promokody-s7", "page"), ("TG", "https://t.me/s/s7airlines", "tg")]),
+ "ur": ("avia", "🔴 УРАЛЬСКИЕ АВИАЛИНИИ", [("7days", "https://7days.ru/promokodi/ural-airlines", "page"), ("TG", "https://t.me/s/uralairlines", "tg")]),
+ "pg": ("avia", "🟡 PEGASUS", [("Офиц. сайт", "https://www.flypgs.com/en", "page"), ("7days", "https://7days.ru/promokodi/pegasus", "page"), ("TG", "https://t.me/s/flypgs", "tg")]),
+ "oz": ("market", "🟣 OZON", [("7days", "https://7days.ru/promokodi/ozon", "page"), ("Lovikod", "https://lovikod.ru/promokody-ozon", "page"), ("TG", "https://t.me/s/ozon", "tg")]),
+ "wb": ("market", "🟣 WILDBERRIES", [("7days", "https://7days.ru/promokodi/wildberries", "page"), ("Lovikod", "https://lovikod.ru/promokody-wildberries", "page"), ("TG", "https://t.me/s/wildberries", "tg")]),
+ "ym": ("market", "🟡 ЯНДЕКС МАРКЕТ", [("7days", "https://7days.ru/promokodi/yandex-market", "page"), ("Lovikod", "https://lovikod.ru/promokody-yandex-market", "page"), ("TG", "https://t.me/s/yandex_market", "tg")]),
+ "mm": ("market", "🟢 МЕГАМАРКЕТ", [("7days", "https://7days.ru/promokodi/megamarket", "page"), ("Lovikod", "https://lovikod.ru/promokody-megamarket", "page"), ("TG", "https://t.me/s/megamarket", "tg")]),
+ "ali": ("market", "🟠 ALIEXPRESS", [("7days", "https://7days.ru/promokodi/aliexpress", "page"), ("Lovikod", "https://lovikod.ru/promokody-aliexpress", "page"), ("TG", "https://t.me/s/aliexpress", "tg")]),
 }
-BUILTIN = [
-    ("ya", "Lovikod", "https://lovikod.ru/travel/promokody-yandex-travel"),
-    ("os", "Официальный блог", "https://blog.ostrovok.ru/promokody-ostrovka/"),
-    ("os", "Лисёнок", "https://lisenok-travel.ru/tpost/ostrovok-promokody-na-skidku"),
-    ("oz", "Lovikod", "https://lovikod.ru/travel/promokody-ozon-travel"),
-    ("oz", "7days", "https://7days.ru/promokodi/ozon-travel"),
-    ("ot", "Lovikod", "https://lovikod.ru/travel/promokody-otello"),
-    ("ot", "7days", "https://7days.ru/promokodi/otello"),
-    ("tp", "Lovikod", "https://lovikod.ru/travel/promokody-t-puteshestviya"),
-    ("tp", "7days", "https://7days.ru/promokodi/t-puteshestviya"),
-]
 CODE = r"[A-ZА-ЯЁ][A-ZА-ЯЁ0-9\-]{3,}"
 CODE_RE = re.compile(r"\b(?:" + CODE + r")\b")
-STOP = {"ВАЖНО","СКИДКА","СКИДКИ","ПРОМОКОД","ПРОМОКОДЫ","ОСТРОВОК","ЯНДЕКС","ТУРЦИЯ","РОССИЯ",
-        "GURU","ГУРУ","RSS","HTML","HTTPS","HTTP","ООО","ИНН","МЕНЮ","ДАТА","СРОК","АКЦИЯ","АКЦИИ",
-        "КУПОН","КУПОНЫ","ОТЕЛЬ","ОТЕЛИ","НОЯБРЬ","ДЕКАБРЬ","ЯНВАРЬ","ОТКРЫТЬ","ПОДРОБНЕЕ",
-        "ПРОВЕРЕН","ПРОВЕРЕНО","ПЕРВЫЙ","ПОВТОРНЫЙ","ОПИСАНИЕ","OZON","ОТЕЛЛО","TRAVEL"}
+STOP = {"ВАЖНО","СКИДКА","СКИДКИ","ПРОМОКОД","ПРОМОКОДЫ","ОСТРОВОК","ЯНДЕКС","ТУРЦИЯ","РОССИЯ","GURU","ГУРУ","RSS","HTML","HTTPS","HTTP","ООО","ИНН","МЕНЮ","ДАТА","СРОК","АКЦИЯ","АКЦИИ","КУПОН","КУПОНЫ","ОТЕЛЬ","ОТЕЛИ","НОЯБРЬ","ДЕКАБРЬ","ЯНВАРЬ","ОТКРЫТЬ","ПОДРОБНЕЕ","ПРОВЕРЕН","ПРОВЕРЕНО","ПЕРВЫЙ","ПОВТОРНЫЙ","ОПИСАНИЕ","OZON","ОТЕЛЛО","TRAVEL","JOURNAL","АЭРОФЛОТ","ПОБЕДА","S7","UTAIR","FLYDUBAI","PEGASUS","OZON","WILDBERRIES","ALIEXPRESS","МЕГАМАРКЕТ","МАРКЕТ"}
 BAD = re.compile(r"(завершена|завершён|завершен\b|истёк|истек|не действует|expired)", re.I)
 CUT = re.compile(r"(истекшие купоны|завершенные промокоды|завершённые промокоды|завершенные купоны)", re.I)
 
@@ -50,17 +51,15 @@ def num(s): return int(re.sub(r"\s", "", s))
 def fmt(n): return f"{n:,}".replace(",", " ")
 def msk(t=None): return time.gmtime((t or time.time()) + 3 * 3600)
 def msk_str(t, f="%d.%m %H:%M"): return time.strftime(f, msk(t))
-
 def admin_id():
-    """Админ: из секрета -> из состояния -> первый подписчик (вы)."""
     if ENV_ADMIN: return ENV_ADMIN
     if ST.get("admin"): return ST["admin"]
-    if ST["subs"]: ST["admin"] = ST["subs"][0]
+    if ST["subs"]: ST["admin"] = next(iter(ST["subs"]))
     return ST.get("admin", 0)
 
-def extract_soup(html_text):
-    soup = BeautifulSoup(html_text, "html.parser")
-    for t in soup(["script", "style", "noscript"]): t.decompose()
+def extract_soup(t):
+    soup = BeautifulSoup(t, "html.parser")
+    for x in soup(["script", "style", "noscript"]): x.decompose()
     text = soup.get_text("\n")
     m = CUT.search(text)
     if m: text = text[:m.start()]
@@ -71,15 +70,30 @@ def extract_soup(html_text):
         found[code] = clean(ctx)[:260]
     for tr in soup.find_all("tr"):
         cells = [c.get_text(" ", strip=True) for c in tr.find_all(["td", "th"])]
-        if len(cells) >= 3 and CODE_RE.fullmatch(cells[1].strip()):
-            add(cells[1], cells[2] + " · " + cells[0])
-    for m in re.finditer(r"\b(" + CODE + r")\s*[—–-]\s*(?i:скидк)[^.]{0,220}\.?", flat):
-        add(m.group(1), m.group(0))
+        if len(cells) >= 3 and CODE_RE.fullmatch(cells[1].strip()): add(cells[1], cells[2] + " · " + cells[0])
+    for m in re.finditer(r"\b(" + CODE + r")\s*[—–-]\s*(?i:скидк)[^.]{0,220}\.?", flat): add(m.group(1), m.group(0))
     for m in re.finditer(r"(?i:промокод\w*)\s*[:→]?\s*(" + CODE + r")", flat):
         s = max(0, m.start() - 160); add(m.group(1), flat[s:m.end() + 160])
     for m in re.finditer(r"Активировать промокод\s*→\s*(" + CODE + r")", flat):
         s = max(0, m.start() - 230); add(m.group(1), flat[s:m.end()])
     return found
+
+def crawl(url, name):
+    r = requests.get(url, headers=HEADERS, timeout=30); r.raise_for_status()
+    if "journal" in url:
+        links = re.findall(r'href="(/journal/[a-z0-9\-]+/)"', r.text)
+        urls = ["https://travel.yandex.ru" + l for l in dict.fromkeys(links)][:6]
+    else:
+        links = re.findall(r'href="(https?://blog\.ostrovok\.ru/[a-z0-9\-]+/)"', r.text)
+        urls = list(dict.fromkeys(links))[:6]
+    out = {}
+    for u in urls:
+        try:
+            rr = requests.get(u, headers=HEADERS, timeout=25)
+            if rr.status_code != 200: continue
+            for c, ctx in extract_soup(rr.text).items(): out.setdefault(c, {"ctx": ctx, "src": name})
+        except Exception: continue
+    return out
 
 def parse_offer(c):
     pct = amt = mn = cap = exp = None
@@ -100,65 +114,111 @@ def parse_offer(c):
     tags = []
     if re.search(r"приложени", c, re.I): tags.append("только в приложении")
     if re.search(r"перв\w+\s*(заказ|бронирован|оплат)|новых пользователей", c, re.I): tags.append("первое бронирование")
-    if re.search(r"подборк|со страницы|premium", c, re.I): tags.append("отели из подборки")
+    if re.search(r"подборк|со страницы|premium", c, re.I): tags.append("из подборки")
     if re.search(r"проживани\w*[^.]{0,40}2027|в течение 2027|2027 года", c, re.I): tags.append("проживание в 2027")
     if re.search(r"санатор|в РФ|по России|территории РФ", c, re.I): tags.append("только РФ")
-    if re.search(r"Шардж", c, re.I): tags.append("только Шарджа")
     return pct, amt, mn, cap, exp, tags
 
-def block(code, v):
-    pct, amt, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
-    if amt:
-        line = f"{fmt(amt)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
-    elif pct:
-        line = f"{pct}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
-    else:
-        line = "скидка по условиям акции"
-    out = [f"<code>{html.escape(code)}</code>", line,
-           f"Действует до {exp}" if exp else "Срок не указан"]
+def value(v, budget):
+    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
+    if mn and budget < mn: return 0
+    if a: return a
+    if p:
+        val = budget * p / 100
+        if cap: val = min(val, cap)
+        return int(val)
+    return 0
+
+def sig(v):
+    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
+    return (p, a, mn, cap, exp, tuple(tags))
+
+def block(code, v, mark=None, budget=None, aliases=()):
+    p, a, mn, cap, exp, tags = parse_offer(v.get("ctx", ""))
+    if a: line = f"{fmt(a)} ₽" + (f" от {fmt(mn)} ₽" if mn else "")
+    elif p: line = f"{p}%" + (f" от {fmt(mn)} ₽" if mn else "") + (f" (макс. {fmt(cap)} ₽)" if cap else "")
+    else: line = "скидка по условиям акции"
+    out = []
+    if mark: out.append(mark)
+    out.append(f"<code>{html.escape(code)}</code>")
+    out.append(line)
+    if p and budget: out.append(f"≈ выгода {fmt(value(v, budget))} ₽ при сумме {fmt(budget)} ₽")
+    out.append(f"Действует до {exp}" if exp else "Срок не указан")
     if tags: out.append("⚠️ " + " · ".join(tags[:2]))
+    if aliases: out.append("🔁 ещё коды акции: " + " ".join(f"<code>{html.escape(x)}</code>" for x in aliases[:3]))
     return "\n".join(out)
 
-def all_sources(st):
-    return list(BUILTIN) + [(s["svc"], s["name"], s["url"]) for s in st.get("sources_custom", [])]
+def render_category(cat, entries, st):
+    budget = st["settings"]["budgets"][cat]
+    scored = [(b, c, v, value(v, budget)) for b, c, v in entries]
+    ranked = sorted(scored, key=lambda x: -x[3])
+    marks = {}
+    for i, (b, c, v, s) in enumerate(ranked[:3]):
+        if s > 0: marks[b + ":" + c] = "💰 САМЫЙ ВЫГОДНЫЙ" if i == 0 else "🔥 ВЫГОДНЫЙ"
+    by_brand = {}
+    for b, c, v, s in scored: by_brand.setdefault(b, []).append((c, v, s))
+    brand_best = {b: max(x[2] for x in rows) for b, rows in by_brand.items()}
+    parts = []
+    for b in sorted(by_brand, key=lambda x: -brand_best[x]):
+        groups = {}
+        for c, v, s in sorted(by_brand[b], key=lambda x: -x[2]): groups.setdefault(sig(v), []).append((c, v, s))
+        blocks = []
+        for g in groups.values():
+            c, v, s = g[0]
+            blocks.append(block(c, v, marks.get(b + ":" + c), budget, [x[0] for x in g[1:]]))
+        parts.append(BRANDS[b][1] + "\n\n" + "\n\n".join(blocks))
+    return "\n\n".join(parts)
 
-def fetch(svc, st):
-    out = {}; http = st.setdefault("http", {})
-    off = st.get("sources_off", [])
-    for s, name, url in all_sources(st):
-        if s != svc or url in off: continue
+def all_sources(st):
+    out = []
+    for b, (cat, title, srcs) in BRANDS.items():
+        for name, url, kind in srcs: out.append((b, name, url, kind))
+    for s in st.get("sources_custom", []): out.append((s["brand"], s["name"], s["url"], "page"))
+    return out
+
+def fetch(brand, st):
+    out = {}; http = st.setdefault("http", {}); off = st.get("sources_off", []); now = time.time()
+    for b, name, url, kind in all_sources(st):
+        if b != brand or url in off: continue
         rec = http.get(url, {})
-        if time.time() < rec.get("backoff", 0):
+        if now < rec.get("backoff", 0) or (kind == "crawl" and rec.get("codes") and now - rec.get("crawl_ts", 0) < CRAWL_TTL):
             for c, v in rec.get("codes", {}).items(): out.setdefault(c, v)
             continue
-        headers = dict(HEADERS)
-        if rec.get("etag"): headers["If-None-Match"] = rec["etag"]
-        if rec.get("lm"): headers["If-Modified-Since"] = rec["lm"]
         try:
-            r = requests.get(url, headers=headers, timeout=30)
-            if r.status_code == 304:
-                codes = rec.get("codes", {})
+            if kind == "crawl":
+                codes = crawl(url, name); rec["crawl_ts"] = now
             else:
-                r.raise_for_status()
-                codes = {c: {"ctx": ctx, "src": name} for c, ctx in extract_soup(r.text).items()}
-                rec["etag"] = r.headers.get("ETag", ""); rec["lm"] = r.headers.get("Last-Modified", "")
-            rec["codes"] = codes; rec["backoff"] = 0; rec["ok_ts"] = time.time(); rec["err"] = ""
+                headers = dict(HEADERS)
+                if kind == "page":
+                    if rec.get("etag"): headers["If-None-Match"] = rec["etag"]
+                    if rec.get("lm"): headers["If-Modified-Since"] = rec["lm"]
+                r = requests.get(url, headers=headers, timeout=30)
+                if r.status_code == 304: codes = rec.get("codes", {})
+                else:
+                    r.raise_for_status()
+                    codes = {c: {"ctx": ctx, "src": name} for c, ctx in extract_soup(r.text).items()}
+                    if kind == "page":
+                        rec["etag"] = r.headers.get("ETag", ""); rec["lm"] = r.headers.get("Last-Modified", "")
+            rec["codes"] = codes; rec["backoff"] = 0; rec["ok_ts"] = now; rec["err"] = ""
             for c, v in codes.items(): out.setdefault(c, v)
         except Exception as e:
-            rec["backoff"] = time.time() + BACKOFF; rec["err"] = type(e).__name__
+            rec["backoff"] = now + BACKOFF; rec["err"] = type(e).__name__
             for c, v in rec.get("codes", {}).items(): out.setdefault(c, v)
         http[url] = rec
     return out
 
 def load_state():
-    st = {"subs": [], "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
+    st = {"subs": {}, "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
           "offset": 0, "last_poll": 0, "cool": {}, "sources_off": [], "sources_custom": [],
           "await_ann": False, "await_src": False, "admin": 0,
-          "settings": {"interval": 5, "quiet": False, "broadcast": True}}
+          "settings": {"interval": 5, "quiet": False, "broadcast": True,
+                       "budgets": {"hotel": 60000, "avia": 15000, "market": 5000}}}
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, encoding="utf-8") as f: st.update(json.load(f))
         except Exception: pass
+    if isinstance(st["subs"], list):
+        st["subs"] = {c: {"hotel": True, "avia": True, "market": False} for c in st["subs"]}
     return st
 
 def save_state(st):
@@ -173,12 +233,18 @@ def tg(method, **kw):
     try: return requests.post(API + "/" + method, json=kw, timeout=40).json()
     except Exception: return {}
 
+def flags(chat):
+    return ST["subs"].setdefault(chat, {"hotel": True, "avia": True, "market": False})
+
 def menu_for(chat):
+    f = flags(chat)
     rows = [
-        [{"text": "🟡 Яндекс", "callback_data": "ya"}, {"text": "🔵 Островок", "callback_data": "os"}],
-        [{"text": "🟣 Ozon", "callback_data": "oz"}, {"text": "🟠 Отелло", "callback_data": "ot"}],
-        [{"text": "🟢 Т-Путешествия", "callback_data": "tp"}, {"text": "🕘 Старые", "callback_data": "old"}],
-        [{"text": "🔄 Обновить", "callback_data": "refresh"}],
+        [{"text": "🏨 Отели", "callback_data": "cat_hotel"}, {"text": "✈️ Авиабилеты", "callback_data": "cat_avia"}],
+        [{"text": "🛍 Маркетплейсы", "callback_data": "cat_market"}, {"text": "🕘 Старые", "callback_data": "old"}],
+        [{"text": f"🔔 Отели: {'вкл' if f['hotel'] else 'выкл'}", "callback_data": "sub_hotel"},
+         {"text": f"🔔 Авиа: {'вкл' if f['avia'] else 'выкл'}", "callback_data": "sub_avia"}],
+        [{"text": f"🔔 Маркет: {'вкл' if f['market'] else 'выкл'}", "callback_data": "sub_market"},
+         {"text": "🔄 Обновить", "callback_data": "refresh"}],
     ]
     if chat == admin_id(): rows.append([{"text": "⚙️ Админ панель", "callback_data": "admin"}])
     return {"inline_keyboard": rows}
@@ -194,30 +260,30 @@ def send(chat, text):
         if i == len(chunks) - 1: kw["reply_markup"] = menu_for(chat)
         tg("sendMessage", **kw); time.sleep(0.4)
 
-def get_codes(svc, st, force=False):
-    c = st["cache"].get(svc, {})
+def get_codes(brand, st, force=False):
+    c = st["cache"].get(brand, {})
     if force or not c.get("codes"):
-        st["cache"][svc] = {"ts": time.time(), "codes": fetch(svc, st)}
-    return st["cache"].get(svc, {}).get("codes", {})
+        st["cache"][brand] = {"ts": time.time(), "codes": fetch(brand, st)}
+    return st["cache"].get(brand, {}).get("codes", {})
 
-def cmd_list(svc, st, chat):
-    codes = get_codes(svc, st)
-    if not codes:
-        send(chat, SERVICES[svc] + "\n\nКодов пока не нашёл. Нажми «🔄 Обновить» позже."); return
-    items = list(codes.items())[:15]
-    msg = f"{SERVICES[svc]} · актуальные ({len(codes)})\n\n" + "\n\n".join(block(c, v) for c, v in items)
-    if len(codes) > 15: msg += f"\n\n…и ещё {len(codes) - 15}."
+def cmd_category(cat, st, chat):
+    entries = []
+    for b, (c0, title, srcs) in BRANDS.items():
+        if c0 != cat: continue
+        for c, v in get_codes(b, st).items(): entries.append((b, c, v))
+    if not entries:
+        send(chat, CATS[cat] + "\n\nКодов пока не нашёл. Нажми «🔄 Обновить» позже."); return
+    msg = f"{CATS[cat]} · {len(entries)} кодов\n\n" + render_category(cat, entries, st)
     msg += "\n\n👆 Нажми на код — он скопируется."
     send(chat, msg)
 
 def cmd_old(st, chat):
     old = st.get("old", {})
-    if not old:
-        send(chat, "🕘 Старых кодов пока нет."); return
-    items = sorted(old.items(), key=lambda kv: kv[1].get("gone", ""), reverse=True)[:15]
+    if not old: send(chat, "🕘 Старых кодов пока нет."); return
+    items = sorted(old.items(), key=lambda kv: kv[1].get("gone", ""), reverse=True)
     msg = "🕘 СТАРЫЕ КОДЫ\n\n" + "\n\n".join(
-        block(c, v) + f"\n🕘 пропал {v.get('gone', '?')} · {SERVICES.get(v.get('svc', ''), '')}"
-        for c, v in items)
+        block(k.split(":", 1)[1], v) + f"\n🕘 пропал {v.get('gone', '?')} · {BRANDS.get(v.get('brand', ''), ('', '?'))[1]}"
+        for k, v in items)
     msg += "\n\nНекоторые ещё срабатывают в корзине."
     send(chat, msg)
 
@@ -227,53 +293,49 @@ def is_quiet(st):
     return h >= 23 or h < 8
 
 def show_admin(st, chat):
-    s = st["settings"]
+    s = st["settings"]; b = s["budgets"]
     msg = ("⚙️ АДМИН-ПАНЕЛЬ\n\n"
-           f"⏱ Интервал: {s['interval']} мин\n"
-           f"🌙 Тихие часы (23–08 МСК): {'вкл' if s['quiet'] else 'выкл'}\n"
-           f"📢 Рассылка: {'вкл' if s['broadcast'] else 'выкл'}\n"
-           f"👥 Подписчиков: {len(st['subs'])}\n"
-           f"🆔 Админ: {admin_id()}")
+           f"⏱ Интервал: {s['interval']} мин · 🌙 Тихие: {'вкл' if s['quiet'] else 'выкл'} · 📢 Рассылка: {'вкл' if s['broadcast'] else 'выкл'}\n"
+           f"💰 Бюджеты: отели {fmt(b['hotel'])} ₽ · авиа {fmt(b['avia'])} ₽ · маркет {fmt(b['market'])} ₽\n"
+           f"👥 Подписчиков: {len(st['subs'])} · 🆔 Админ: {admin_id()}")
     kb = {"inline_keyboard": [
-        [{"text": f"⏱ Интервал: {s['interval']} мин", "callback_data": "adm_int"},
-         {"text": f"🌙 Тихие: {'вкл' if s['quiet'] else 'выкл'}", "callback_data": "adm_quiet"}],
-        [{"text": f"📢 Рассылка: {'вкл' if s['broadcast'] else 'выкл'}", "callback_data": "adm_bc"},
-         {"text": "🩺 Статус", "callback_data": "adm_status"}],
-        [{"text": "📡 Источники", "callback_data": "adm_src"},
-         {"text": "👥 Подписчики", "callback_data": "adm_subs"}],
-        [{"text": "📣 Объявление всем", "callback_data": "adm_ann"},
-         {"text": "➕ Источник", "callback_data": "adm_add"}],
-        [{"text": "⬅️ Назад", "callback_data": "adm_back"}],
+        [{"text": f"⏱ {s['interval']} мин", "callback_data": "adm_int"},
+         {"text": f"🌙 Тихие: {'вкл' if s['quiet'] else 'выкл'}", "callback_data": "adm_quiet"},
+         {"text": f"📢 {'вкл' if s['broadcast'] else 'выкл'}", "callback_data": "adm_bc"}],
+        [{"text": f"💰 Отели {fmt(b['hotel'])}", "callback_data": "adm_bud_hotel"},
+         {"text": f"💰 Авиа {fmt(b['avia'])}", "callback_data": "adm_bud_avia"},
+         {"text": f"💰 Маркет {fmt(b['market'])}", "callback_data": "adm_bud_market"}],
+        [{"text": "🩺 Статус", "callback_data": "adm_status"}, {"text": "📡 Источники", "callback_data": "adm_src"}],
+        [{"text": "👥 Подписчики", "callback_data": "adm_subs"}, {"text": "📣 Объявление", "callback_data": "adm_ann"}],
+        [{"text": "➕ Источник", "callback_data": "adm_add"}, {"text": "⬅️ Назад", "callback_data": "adm_back"}],
     ]}
     tg("sendMessage", chat_id=chat, text=msg, reply_markup=kb)
 
 def show_status(st, chat):
     now = time.time(); s = st["settings"]
     lines = ["🩺 СТАТУС РАДАРА",
-             f"Последняя проверка: {msk_str(st['last_poll']) if st['last_poll'] else 'ещё не было'} МСК",
-             f"Интервал: {s['interval']} мин · Тихие часы: {'вкл' if s['quiet'] else 'выкл'} · Рассылка: {'вкл' if s['broadcast'] else 'выкл'}",
-             f"Подписчиков: {len(st['subs'])} · Кодов в базе: {len(st['seen'])} · Старых: {len(st['old'])}",
-             "", "Источники:"]
-    for svc, name, url in all_sources(st):
-        rec = st["http"].get(url, {})
-        if url in st.get("sources_off", []):
-            lines.append(f"⏸ {name} ({svc}) — выключен")
-        elif rec.get("backoff", 0) > now:
-            lines.append(f"⚠️ {name} ({svc}) — ошибка {rec.get('err', '')}, пауза до {msk_str(rec['backoff'], '%H:%M')}")
-        elif rec.get("ok_ts"):
-            lines.append(f"✅ {name} ({svc}) — {int((now - rec['ok_ts']) / 60)} мин назад")
-        else:
-            lines.append(f"⏳ {name} ({svc}) — ещё не проверялся")
+             f"Проверка: {msk_str(st['last_poll']) if st['last_poll'] else '—'} МСК · интервал {s['interval']} мин",
+             f"Кодов: {len(st['seen'])} · Старых: {len(st['old'])} · Подписчиков: {len(st['subs'])}", ""]
+    for cat in CATS:
+        lines.append(CATS[cat] + ":")
+        for b, name, url, kind in all_sources(st):
+            if BRANDS.get(b, ("",))[0] != cat and b in BRANDS: continue
+            if b not in BRANDS: continue
+            rec = st["http"].get(url, {}); n = len(rec.get("codes", {}))
+            if url in st.get("sources_off", []): lines.append(f"⏸ {name} ({b})")
+            elif rec.get("backoff", 0) > now: lines.append(f"⚠️ {name} ({b}) {rec.get('err', '')} до {msk_str(rec['backoff'], '%H:%M')}")
+            elif rec.get("ok_ts"): lines.append(f"{'✅' if n else '🈳'} {name} ({b}) {n} кодов, {int((now - rec['ok_ts']) / 60)}м")
+            else: lines.append(f"⏳ {name} ({b})")
+        lines.append("")
     send(chat, "\n".join(lines))
 
 def show_sources(st, chat):
     rows = []; text = ["📡 ИСТОЧНИКИ (нажми — вкл/выкл):"]
-    for i, (svc, name, url) in enumerate(all_sources(st)):
+    for i, (b, name, url, kind) in enumerate(all_sources(st)):
         on = url not in st.get("sources_off", [])
-        text.append(f"{'✅' if on else '❌'} {name} · {svc}")
-        rows.append([{"text": f"{'✅' if on else '❌'} {name} ({svc})", "callback_data": f"src_{i}"}])
+        rows.append([{"text": f"{'✅' if on else '❌'} {b} · {name}", "callback_data": f"src_{i}"}])
     for i, s in enumerate(st.get("sources_custom", [])):
-        rows.append([{"text": f"🗑 удалить: {s['url'][:40]}", "callback_data": f"del_{i}"}])
+        rows.append([{"text": f"🗑 {s['url'][:40]}", "callback_data": f"del_{i}"}])
     rows.append([{"text": "⬅️ Назад", "callback_data": "admin"}])
     tg("sendMessage", chat_id=chat, text="\n".join(text), reply_markup={"inline_keyboard": rows})
 
@@ -283,79 +345,78 @@ def handle(u, st):
         tg("answerCallbackQuery", callback_query_id=q["id"])
     elif "message" in u and "text" in u["message"]:
         chat = u["message"]["chat"]["id"]; data = u["message"]["text"].strip()
-    else:
-        return
+    else: return
     uid = str(chat); low = data.lower()
-    admin_cmd = data in ("admin", "adm_int", "adm_quiet", "adm_bc", "adm_status", "adm_src",
-                         "adm_subs", "adm_ann", "adm_add", "adm_back", "/admin", "/status") \
-                or data.startswith(("src_", "del_"))
-    if admin_cmd and chat != admin_id():
-        send(chat, "⛔ Эта команда только для админа."); return
+    admin_cmd = data in ("admin", "adm_int", "adm_quiet", "adm_bc", "adm_status", "adm_src", "adm_subs",
+                         "adm_ann", "adm_add", "adm_back", "/admin", "/status") or data.startswith(("src_", "del_", "adm_bud_"))
+    if admin_cmd and chat != admin_id(): send(chat, "⛔ Только для админа."); return
     if chat == admin_id() and st.get("await_ann") and "message" in u:
         st["await_ann"] = False
         for c in st["subs"]: send(c, "📣 ОБЪЯВЛЕНИЕ\n\n" + html.escape(data))
-        send(chat, "✅ Объявление разослано."); return
+        send(chat, "✅ Разослано."); return
     if chat == admin_id() and st.get("await_src") and "message" in u:
         st["await_src"] = False
         parts = data.split(None, 1)
-        if len(parts) == 2 and parts[0] in SERVICES and parts[1].startswith("http"):
-            st["sources_custom"].append({"svc": parts[0], "name": "Свой источник", "url": parts[1]})
+        if len(parts) == 2 and parts[0] in BRANDS and parts[1].startswith("http"):
+            st["sources_custom"].append({"brand": parts[0], "name": "Свой источник", "url": parts[1]})
             send(chat, "✅ Источник добавлен!")
         else:
-            send(chat, "Формат: сервис ссылка\nСервисы: ya os oz ot tp\nПример: oz https://lovikod.ru/travel/promokody-ozon-travel")
+            send(chat, "Формат: бренд ссылка\nБренды: " + " ".join(BRANDS.keys()) + "\nПример: s7 https://www.s7.ru/ru/offers/")
         return
     if low == "/whoami":
         send(chat, f"🆔 Ваш ID: {chat}\nАдмин: {'да ✅' if chat == admin_id() else 'нет'}"); return
     if low == "/start":
-        if chat not in st["subs"]: st["subs"].append(chat)
+        flags(chat)
         if not admin_id(): st["admin"] = chat
-        send(chat, "👋 Привет! Я радар промокодов: Яндекс Путешествия, Островок, Ozon Travel, Отелло, Т-Путешествия.\n\n"
-                   "Жми кнопки — покажу коды. Новые присылаю сам.\n"
-                   "Команды: /yandex /ostrovok /ozon /otello /tput /old /stop /whoami"
-                   + ("\n⚙️ У тебя есть кнопка «Админ панель»." if chat == admin_id() else ""))
+        send(chat, "👋 Привет! Радар промокодов: 🏨 отели, ✈️ авиабилеты, 🛍 маркетплейсы.\n"
+                   "Жми раздел — покажу все коды, выгодные первыми.\n"
+                   "Кнопки 🔔 включают уведомления по разделу.\n"
+                   "Команды: /hotel /avia /market /old /stop /whoami"
+                   + ("\n⚙️ У тебя кнопка «Админ панель»." if chat == admin_id() else ""))
         return
-    if low in ("/stop", "unsub"):
-        if chat in st["subs"]: st["subs"].remove(chat)
-        send(chat, "🔕 Рассылка отключена. Кнопки работают всегда."); return
-    if low == "sub":
-        if chat not in st["subs"]: st["subs"].append(chat)
-        send(chat, "🔔 Подписка включена!"); return
+    if low == "/stop":
+        f = flags(chat); f.update({"hotel": False, "avia": False, "market": False})
+        send(chat, "🔕 Все уведомления отключены. Кнопки работают."); return
     if low == "/help":
-        send(chat, "Кнопки ниже 👇\n/yandex /ostrovok /ozon /otello /tput — коды сервисов\n/old — старые коды\n/stop — отключить рассылку"); return
+        send(chat, "🏨 /hotel · ✈️ /avia · 🛍 /market\n🕘 /old · 🔕 /stop\nКнопки 🔔 — уведомления по разделам"); return
     if low == "refresh":
         now = time.time()
-        if now - st["cool"].get(uid, 0) < COOLDOWN:
-            send(chat, "⏳ Подожди 30 секунд."); return
+        if now - st["cool"].get(uid, 0) < COOLDOWN: send(chat, "⏳ Подожди 30 секунд."); return
         st["cool"][uid] = now
-        for svc in SERVICES: get_codes(svc, st, force=True)
-        send(chat, "🔄 Обновлено! Жми кнопку сервиса."); return
-    if low in ("ya", "/yandex"): cmd_list("ya", st, chat); return
-    if low in ("os", "/ostrovok"): cmd_list("os", st, chat); return
-    if low in ("oz", "/ozon"): cmd_list("oz", st, chat); return
-    if low in ("ot", "/otello"): cmd_list("ot", st, chat); return
-    if low in ("tp", "/tput"): cmd_list("tp", st, chat); return
+        for b in BRANDS: get_codes(b, st, force=True)
+        send(chat, "🔄 Обновлено! Жми раздел."); return
+    if low in ("cat_hotel", "/hotel"): cmd_category("hotel", st, chat); return
+    if low in ("cat_avia", "/avia"): cmd_category("avia", st, chat); return
+    if low in ("cat_market", "/market"): cmd_category("market", st, chat); return
     if low in ("old", "/old"): cmd_old(st, chat); return
+    if low.startswith("sub_"):
+        cat = low[4:]; f = flags(chat); f[cat] = not f[cat]
+        send(chat, f"🔔 Уведомления «{CATS[cat]}»: {'вкл ✅' if f[cat] else 'выкл 🔕'}"); return
     if low in ("admin", "/admin"): show_admin(st, chat); return
     if low in ("adm_status", "/status"): show_status(st, chat); return
     if low == "adm_int":
-        opts = [5, 10, 15, 30, 60]
-        cur = st["settings"]["interval"]
+        opts = [5, 10, 15, 30, 60]; cur = st["settings"]["interval"]
         st["settings"]["interval"] = opts[(opts.index(cur) + 1) % len(opts)] if cur in opts else 5
         show_admin(st, chat); return
-    if low == "adm_quiet":
-        st["settings"]["quiet"] = not st["settings"]["quiet"]; show_admin(st, chat); return
-    if low == "adm_bc":
-        st["settings"]["broadcast"] = not st["settings"]["broadcast"]; show_admin(st, chat); return
+    if low == "adm_quiet": st["settings"]["quiet"] = not st["settings"]["quiet"]; show_admin(st, chat); return
+    if low == "adm_bc": st["settings"]["broadcast"] = not st["settings"]["broadcast"]; show_admin(st, chat); return
+    if low.startswith("adm_bud_"):
+        cat = low[8:]
+        opts = {"hotel": [30000, 60000, 100000, 150000], "avia": [5000, 10000, 15000, 30000], "market": [1000, 3000, 5000, 10000]}[cat]
+        cur = st["settings"]["budgets"][cat]
+        st["settings"]["budgets"][cat] = opts[(opts.index(cur) + 1) % len(opts)] if cur in opts else opts[0]
+        show_admin(st, chat); return
     if low == "adm_src": show_sources(st, chat); return
     if low == "adm_subs":
-        send(chat, "👥 Подписчики (%d):\n%s" % (len(st["subs"]), "\n".join(map(str, st["subs"])) or "пусто")); return
-    if low == "adm_ann":
-        st["await_ann"] = True; send(chat, "📣 Пришли текст объявления следующим сообщением."); return
+        cnt = {c: sum(1 for f in st["subs"].values() if f.get(c)) for c in CATS}
+        send(chat, "👥 Подписчики (%d):\n%s\nПо разделам: %s" % (
+            len(st["subs"]), "\n".join(map(str, st["subs"])) or "пусто",
+            " · ".join(f"{CATS[c]} {cnt[c]}" for c in CATS))); return
+    if low == "adm_ann": st["await_ann"] = True; send(chat, "📣 Пришли текст объявления."); return
     if low == "adm_add":
         st["await_src"] = True
-        send(chat, "➕ Пришли источник: сервис ссылка\nСервисы: ya os oz ot tp\nПример: oz https://lovikod.ru/travel/promokody-ozon-travel"); return
-    if low == "adm_back":
-        send(chat, "⬅️ Главное меню."); return
+        send(chat, "➕ Пришли: бренд ссылка\nБренды: " + " ".join(BRANDS.keys()) + "\nПример: s7 https://www.s7.ru/ru/offers/"); return
+    if low == "adm_back": send(chat, "⬅️ Главное меню."); return
     if data.startswith("src_"):
         i = int(data[4:]); srcs = all_sources(st)
         if i < len(srcs):
@@ -371,40 +432,41 @@ def handle(u, st):
 
 def scheduled_check(st):
     now = time.time(); found = {}
-    for svc in SERVICES:
-        codes = fetch(svc, st)
-        st["cache"][svc] = {"ts": now, "codes": codes}
-        for c, v in codes.items(): found[c] = dict(v, svc=svc)
+    for b in BRANDS:
+        codes = fetch(b, st)
+        st["cache"][b] = {"ts": now, "codes": codes}
+        for c, v in codes.items(): found[b + ":" + c] = dict(v, brand=b)
     if not found: return
     today = time.strftime("%d.%m.%Y", msk())
     seen = st["seen"]; notified = st.setdefault("notified", {})
-    for c, v in found.items():
-        if c not in seen and now - notified.get(c, 0) > RENOTIFY:
-            st["digest"][c] = v; notified[c] = now
-        seen[c] = dict(v, miss=0)
-    for c in list(seen):
-        if c not in found:
-            seen[c]["miss"] = seen[c].get("miss", 0) + 1
-            if seen[c]["miss"] >= MISS_LIMIT:
-                st["old"][c] = dict(seen[c], gone=today); del seen[c]
-    for c in list(notified):
-        if now - notified[c] > 2 * RENOTIFY: del notified[c]
-    if len(st["old"]) > 300:
-        for c in sorted(st["old"], key=lambda x: st["old"][x].get("gone", ""))[:len(st["old"]) - 300]:
-            del st["old"][c]
+    for k, v in found.items():
+        if k not in seen and now - notified.get(k, 0) > RENOTIFY:
+            st["digest"][k] = v; notified[k] = now
+        seen[k] = dict(v, miss=0)
+    for k in list(seen):
+        if k not in found:
+            seen[k]["miss"] = seen[k].get("miss", 0) + 1
+            if seen[k]["miss"] >= MISS_LIMIT:
+                st["old"][k] = dict(seen[k], gone=today); del seen[k]
+    for k in list(notified):
+        if now - notified[k] > 2 * RENOTIFY: del notified[k]
+    if len(st["old"]) > 500:
+        for k in sorted(st["old"], key=lambda x: st["old"][x].get("gone", ""))[:len(st["old"]) - 500]:
+            del st["old"][k]
     if st["digest"] and st["subs"] and st["settings"]["broadcast"] and not is_quiet(st):
-        for svc in SERVICES:
-            part = {c: v for c, v in st["digest"].items() if v.get("svc") == svc}
-            if not part: continue
-            msg = f"🔔 НОВЫЕ КОДЫ · {SERVICES[svc]}\n\n" + "\n\n".join(block(c, v) for c, v in list(part.items())[:15])
+        for cat in CATS:
+            entries = [(v["brand"], k.split(":", 1)[1], v) for k, v in st["digest"].items()
+                       if BRANDS.get(v.get("brand", ""), ("",))[0] == cat]
+            if not entries: continue
+            msg = f"🔔 НОВЫЕ КОДЫ · {CATS[cat]}\n\n" + render_category(cat, entries, st)
             msg += "\n\n👆 Нажми на код — он скопируется."
-            for chat in st["subs"]: send(chat, msg)
+            for chat, f in st["subs"].items():
+                if f.get(cat): send(chat, msg)
         st["digest"] = {}
 
 def main():
     global ST
-    ST = load_state()
-    st = ST
+    ST = load_state(); st = ST
     end = time.time() + LOOP_SECONDS
     last_save = time.time()
     next_poll = st.get("last_poll", 0) + st["settings"]["interval"] * 60
@@ -415,8 +477,7 @@ def main():
                 st["offset"] = u["update_id"] + 1
                 try: handle(u, st)
                 except Exception: pass
-        except Exception:
-            time.sleep(5)
+        except Exception: time.sleep(5)
         if time.time() >= next_poll:
             try: scheduled_check(st)
             except Exception: pass
