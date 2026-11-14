@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
-"""Промокод-радар: 5 агрегаторов, админ-панель, чистый формат, проверка каждые 5 мин."""
+"""Промокод-радар: 5 агрегаторов, админ-панель (авто-назначение), чистый формат."""
 import html, json, os, random, re, subprocess, time
 import requests
 from bs4 import BeautifulSoup
 
 TG_TOKEN = os.environ["TG_TOKEN"]
-ADMIN = int(os.environ.get("TG_ADMIN") or os.environ.get("TG_CHAT") or 0)
+ENV_ADMIN = int(os.environ.get("TG_ADMIN") or os.environ.get("TG_CHAT") or 0)
 API = "https://api.telegram.org/bot" + TG_TOKEN
 DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(DIR, "state.json")
+ST = None  # глобальное состояние (инициализируется в main)
 
 LOOP_SECONDS = 15 * 60
 COOLDOWN = 30
@@ -49,6 +50,13 @@ def num(s): return int(re.sub(r"\s", "", s))
 def fmt(n): return f"{n:,}".replace(",", " ")
 def msk(t=None): return time.gmtime((t or time.time()) + 3 * 3600)
 def msk_str(t, f="%d.%m %H:%M"): return time.strftime(f, msk(t))
+
+def admin_id():
+    """Админ: из секрета -> из состояния -> первый подписчик (вы)."""
+    if ENV_ADMIN: return ENV_ADMIN
+    if ST.get("admin"): return ST["admin"]
+    if ST["subs"]: ST["admin"] = ST["subs"][0]
+    return ST.get("admin", 0)
 
 def extract_soup(html_text):
     soup = BeautifulSoup(html_text, "html.parser")
@@ -145,7 +153,7 @@ def fetch(svc, st):
 def load_state():
     st = {"subs": [], "seen": {}, "old": {}, "cache": {}, "http": {}, "notified": {}, "digest": {},
           "offset": 0, "last_poll": 0, "cool": {}, "sources_off": [], "sources_custom": [],
-          "await_ann": False, "await_src": False,
+          "await_ann": False, "await_src": False, "admin": 0,
           "settings": {"interval": 5, "quiet": False, "broadcast": True}}
     if os.path.exists(STATE_FILE):
         try:
@@ -172,7 +180,7 @@ def menu_for(chat):
         [{"text": "🟢 Т-Путешествия", "callback_data": "tp"}, {"text": "🕘 Старые", "callback_data": "old"}],
         [{"text": "🔄 Обновить", "callback_data": "refresh"}],
     ]
-    if chat == ADMIN: rows.append([{"text": "⚙️ Админ панель", "callback_data": "admin"}])
+    if chat == admin_id(): rows.append([{"text": "⚙️ Админ панель", "callback_data": "admin"}])
     return {"inline_keyboard": rows}
 
 def send(chat, text):
@@ -224,7 +232,8 @@ def show_admin(st, chat):
            f"⏱ Интервал: {s['interval']} мин\n"
            f"🌙 Тихие часы (23–08 МСК): {'вкл' if s['quiet'] else 'выкл'}\n"
            f"📢 Рассылка: {'вкл' if s['broadcast'] else 'выкл'}\n"
-           f"👥 Подписчиков: {len(st['subs'])}")
+           f"👥 Подписчиков: {len(st['subs'])}\n"
+           f"🆔 Админ: {admin_id()}")
     kb = {"inline_keyboard": [
         [{"text": f"⏱ Интервал: {s['interval']} мин", "callback_data": "adm_int"},
          {"text": f"🌙 Тихие: {'вкл' if s['quiet'] else 'выкл'}", "callback_data": "adm_quiet"}],
@@ -280,27 +289,30 @@ def handle(u, st):
     admin_cmd = data in ("admin", "adm_int", "adm_quiet", "adm_bc", "adm_status", "adm_src",
                          "adm_subs", "adm_ann", "adm_add", "adm_back", "/admin", "/status") \
                 or data.startswith(("src_", "del_"))
-    if admin_cmd and chat != ADMIN:
+    if admin_cmd and chat != admin_id():
         send(chat, "⛔ Эта команда только для админа."); return
-    if chat == ADMIN and st.get("await_ann") and "message" in u:
+    if chat == admin_id() and st.get("await_ann") and "message" in u:
         st["await_ann"] = False
         for c in st["subs"]: send(c, "📣 ОБЪЯВЛЕНИЕ\n\n" + html.escape(data))
         send(chat, "✅ Объявление разослано."); return
-    if chat == ADMIN and st.get("await_src") and "message" in u:
+    if chat == admin_id() and st.get("await_src") and "message" in u:
         st["await_src"] = False
         parts = data.split(None, 1)
         if len(parts) == 2 and parts[0] in SERVICES and parts[1].startswith("http"):
             st["sources_custom"].append({"svc": parts[0], "name": "Свой источник", "url": parts[1]})
-            send(chat, "✅ Источник добавлен! Проверю в ближайшую проверку.")
+            send(chat, "✅ Источник добавлен!")
         else:
-            send(chat, "Формат: код_сервиса ссылка\nНапример: oz https://lovikod.ru/travel/promokody-ozon-travel\nСервисы: ya os oz ot tp")
+            send(chat, "Формат: сервис ссылка\nСервисы: ya os oz ot tp\nПример: oz https://lovikod.ru/travel/promokody-ozon-travel")
         return
+    if low == "/whoami":
+        send(chat, f"🆔 Ваш ID: {chat}\nАдмин: {'да ✅' if chat == admin_id() else 'нет'}"); return
     if low == "/start":
         if chat not in st["subs"]: st["subs"].append(chat)
+        if not admin_id(): st["admin"] = chat
         send(chat, "👋 Привет! Я радар промокодов: Яндекс Путешествия, Островок, Ozon Travel, Отелло, Т-Путешествия.\n\n"
-                   "Жми кнопки — покажу коды. Новые присылаю сам каждые 5 минут.\n"
-                   "Команды: /yandex /ostrovok /ozon /otello /tput /old /stop"
-                   + ("\n⚙️ У тебя есть кнопка «Админ панель»." if chat == ADMIN else ""))
+                   "Жми кнопки — покажу коды. Новые присылаю сам.\n"
+                   "Команды: /yandex /ostrovok /ozon /otello /tput /old /stop /whoami"
+                   + ("\n⚙️ У тебя есть кнопка «Админ панель»." if chat == admin_id() else ""))
         return
     if low in ("/stop", "unsub"):
         if chat in st["subs"]: st["subs"].remove(chat)
@@ -341,7 +353,7 @@ def handle(u, st):
         st["await_ann"] = True; send(chat, "📣 Пришли текст объявления следующим сообщением."); return
     if low == "adm_add":
         st["await_src"] = True
-        send(chat, "➕ Пришли источник в формате: сервис ссылка\nСервисы: ya os oz ot tp\nПример: oz https://lovikod.ru/travel/promokody-ozon-travel"); return
+        send(chat, "➕ Пришли источник: сервис ссылка\nСервисы: ya os oz ot tp\nПример: oz https://lovikod.ru/travel/promokody-ozon-travel"); return
     if low == "adm_back":
         send(chat, "⬅️ Главное меню."); return
     if data.startswith("src_"):
@@ -390,7 +402,9 @@ def scheduled_check(st):
         st["digest"] = {}
 
 def main():
-    st = load_state()
+    global ST
+    ST = load_state()
+    st = ST
     end = time.time() + LOOP_SECONDS
     last_save = time.time()
     next_poll = st.get("last_poll", 0) + st["settings"]["interval"] * 60
